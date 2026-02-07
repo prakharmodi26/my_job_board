@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Profile {
+  id                      Int      @id @default(autoincrement())
+  targetTitles            String[] @default([])
+  skills                  String[] @default([])
+  preferredLocations      String[] @default([])
+  remotePreferred         Boolean  @default(false)
+  citizenshipNotRequired  Boolean  @default(true)
+  workAuthorization       String   @default("")
+  updatedAt               DateTime @updatedAt
+}
+
+model Job {
+  id             Int      @id @default(autoincrement())
+  source         String   @default("jsearch")
+  sourceJobId    String?
+  title          String
+  company        String
+  companyLogo    String?
+  location       String
+  city           String?
+  state          String?
+  country        String?
+  isRemote       Boolean  @default(false)
+  description    String
+  applyUrl       String
+  canonicalUrl   String?
+  employmentType String?
+  salaryMin      Float?
+  salaryMax      Float?
+  salaryPeriod   String?
+  benefits       Json?
+  highlights     Json?
+  postedAt       DateTime?
+  discoveredAt   DateTime @default(now())
+  fingerprint    String?
+  ignored        Boolean  @default(false)
+
+  savedJobs         SavedJob[]
+  recommendedMatches RecommendedMatch[]
+
+  @@unique([source, sourceJobId])
+  @@index([canonicalUrl])
+  @@index([fingerprint])
+  @@index([discoveredAt])
+  @@index([ignored])
+}
+
+model SavedJob {
+  id        Int      @id @default(autoincrement())
+  jobId     Int      @unique
+  status    String   @default("saved") // saved, applied, oa, interview, offer, rejected
+  notes     String?
+  appliedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id])
+
+  @@index([status])
+}
+
+model RecommendedRun {
+  id           Int      @id @default(autoincrement())
+  runAt        DateTime @default(now())
+  paramsJson   String?
+  totalFetched Int      @default(0)
+  newJobs      Int      @default(0)
+  duplicates   Int      @default(0)
+  status       String   @default("running") // running, completed, failed
+  errorMessage String?
+
+  matches RecommendedMatch[]
+
+  @@index([runAt])
+}
+
+model RecommendedMatch {
+  id    Int   @id @default(autoincrement())
+  runId Int
+  jobId Int
+  score Float @default(0)
+  rank  Int   @default(0)
+
+  run RecommendedRun @relation(fields: [runId], references: [id])
+  job Job            @relation(fields: [jobId], references: [id])
+
+  @@unique([runId, jobId])
+  @@index([runId, rank])
+}

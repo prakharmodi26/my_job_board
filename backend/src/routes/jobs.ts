@@ -1,0 +1,206 @@
+import { Router } from "express";
+import { prisma } from "../prisma.js";
+import { searchJobs } from "../services/jsearch.js";
+import { upsertJob } from "../services/jobUpsert.js";
+
+export const jobsRouter = Router();
+
+// GET /api/jobs/recommended
+jobsRouter.get("/recommended", async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, parseInt(req.query.limit as string) || 20);
+  const offset = (page - 1) * limit;
+
+  const latestRun = await prisma.recommendedRun.findFirst({
+    orderBy: { runAt: "desc" },
+    where: { status: "completed" },
+  });
+
+  if (!latestRun) {
+    res.json({ jobs: [], total: 0, page, totalPages: 0 });
+    return;
+  }
+
+  const where = { runId: latestRun.id, job: { ignored: false } };
+
+  const [matches, total] = await Promise.all([
+    prisma.recommendedMatch.findMany({
+      where,
+      orderBy: { rank: "asc" },
+      skip: offset,
+      take: limit,
+      include: {
+        job: { include: { savedJobs: true } },
+      },
+    }),
+    prisma.recommendedMatch.count({ where }),
+  ]);
+
+  res.json({
+    jobs: matches.map((m) => ({
+      ...m.job,
+      score: m.score,
+      rank: m.rank,
+      savedStatus: m.job.savedJobs[0]?.status ?? null,
+      savedId: m.job.savedJobs[0]?.id ?? null,
+    })),
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  });
+});
+
+// POST /api/jobs/:id/save
+jobsRouter.post("/:id/save", async (req, res) => {
+  const jobId = parseInt(req.params.id);
+  const { status } = req.body;
+
+  const saved = await prisma.savedJob.upsert({
+    where: { jobId },
+    create: {
+      jobId,
+      status: status || "saved",
+      appliedAt: status && status !== "saved" ? new Date() : null,
+    },
+    update: {},
+  });
+
+  res.json(saved);
+});
+
+// POST /api/jobs/:id/ignore
+jobsRouter.post("/:id/ignore", async (req, res) => {
+  await prisma.job.update({
+    where: { id: parseInt(req.params.id) },
+    data: { ignored: true },
+  });
+  res.json({ success: true });
+});
+
+// DELETE /api/jobs/:id/ignore
+jobsRouter.delete("/:id/ignore", async (req, res) => {
+  await prisma.job.update({
+    where: { id: parseInt(req.params.id) },
+    data: { ignored: false },
+  });
+  res.json({ success: true });
+});
+
+// GET /api/jobs/saved
+jobsRouter.get("/saved", async (req, res) => {
+  const status = req.query.status as string | undefined;
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, parseInt(req.query.limit as string) || 20);
+  const offset = (page - 1) * limit;
+
+  const where: Record<string, unknown> = {};
+  if (status && status !== "all") where.status = status;
+
+  const [savedJobs, total] = await Promise.all([
+    prisma.savedJob.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      skip: offset,
+      take: limit,
+      include: { job: true },
+    }),
+    prisma.savedJob.count({ where }),
+  ]);
+
+  res.json({
+    jobs: savedJobs.map((s) => ({
+      ...s.job,
+      savedId: s.id,
+      status: s.status,
+      notes: s.notes,
+      appliedAt: s.appliedAt,
+      savedCreatedAt: s.createdAt,
+    })),
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  });
+});
+
+// PATCH /api/jobs/saved/:id
+jobsRouter.patch("/saved/:id", async (req, res) => {
+  const { status, notes, appliedAt } = req.body;
+  const data: Record<string, unknown> = {};
+
+  if (status !== undefined) data.status = status;
+  if (notes !== undefined) data.notes = notes;
+  if (appliedAt !== undefined) {
+    data.appliedAt = appliedAt ? new Date(appliedAt) : null;
+  }
+  // Auto-set appliedAt when moving to a non-saved status
+  if (status && status !== "saved" && appliedAt === undefined) {
+    const existing = await prisma.savedJob.findUnique({
+      where: { id: parseInt(req.params.id) },
+    });
+    if (existing && !existing.appliedAt) {
+      data.appliedAt = new Date();
+    }
+  }
+
+  const updated = await prisma.savedJob.update({
+    where: { id: parseInt(req.params.id) },
+    data,
+    include: { job: true },
+  });
+
+  res.json(updated);
+});
+
+// DELETE /api/jobs/saved/:id
+jobsRouter.delete("/saved/:id", async (req, res) => {
+  await prisma.savedJob.delete({
+    where: { id: parseInt(req.params.id) },
+  });
+  res.json({ success: true });
+});
+
+// GET /api/jobs/search — proxy to JSearch, upsert results
+jobsRouter.get("/search", async (req, res) => {
+  const {
+    query,
+    page,
+    country,
+    date_posted,
+    work_from_home,
+    employment_types,
+  } = req.query;
+
+  if (!query) {
+    res.status(400).json({ error: "query is required" });
+    return;
+  }
+
+  const results = await searchJobs({
+    query: query as string,
+    page: parseInt(page as string) || 1,
+    num_pages: 1,
+    country: (country as string) || "us",
+    date_posted: (date_posted as string) || undefined,
+    work_from_home: work_from_home === "true" || undefined,
+    employment_types: (employment_types as string) || undefined,
+  });
+
+  // Upsert each result into local DB for dedup + save capability
+  const localJobs = [];
+  for (const apiJob of results.data) {
+    const { jobId } = await upsertJob(apiJob);
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: { savedJobs: true },
+    });
+    if (job) {
+      localJobs.push({
+        ...job,
+        savedStatus: job.savedJobs[0]?.status ?? null,
+        savedId: job.savedJobs[0]?.id ?? null,
+      });
+    }
+  }
+
+  res.json({ jobs: localJobs, total: localJobs.length });
+});
