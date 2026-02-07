@@ -25,5 +25,5 @@ EXPOSE 4000
 # Copy seed script
 COPY prisma/seed.ts ./prisma/
 
-# Run migrations, seed, then start
-CMD sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma && npx tsx prisma/seed.ts && node backend/dist/index.js"
+# Wait for postgres, then run migrations, seed, and start
+CMD sh -c "until nc -z postgres 5432; do echo 'Waiting for postgres...'; sleep 2; done && npx prisma migrate deploy --schema=prisma/schema.prisma && npx tsx prisma/seed.ts && node backend/dist/index.js"
