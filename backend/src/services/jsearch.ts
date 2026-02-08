@@ -1,4 +1,4 @@
-const API_BASE = "https://api.openwebninja.com/jsearch";
+const API_BASE = "https://jsearch.p.rapidapi.com";
 const API_KEY = process.env.JSEARCH_API_KEY || "";
 
 export interface JSearchParams {
@@ -82,7 +82,10 @@ export async function searchJobs(
     );
 
   const res = await fetch(url.toString(), {
-    headers: { "x-api-key": API_KEY },
+    headers: {
+      "x-rapidapi-key": API_KEY,
+      "x-rapidapi-host": "jsearch.p.rapidapi.com",
+    },
   });
 
   if (!res.ok) {
