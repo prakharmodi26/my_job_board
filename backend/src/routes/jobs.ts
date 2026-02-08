@@ -3,7 +3,7 @@ import { prisma } from "../prisma.js";
 import { searchJobs } from "../services/jsearch.js";
 import { upsertJob } from "../services/jobUpsert.js";
 import { scoreJob } from "../services/scoring.js";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, Settings } from "@prisma/client";
 
 export const jobsRouter = Router();
 
@@ -199,14 +199,17 @@ jobsRouter.get("/search", async (req, res) => {
     return;
   }
 
-  // Load profile for defaults and scoring
-  const profile = await prisma.profile.findFirst();
+  // Load profile for defaults and scoring, load settings for search params and weights
+  const [profile, settings] = await Promise.all([
+    prisma.profile.findFirst(),
+    prisma.settings.findFirst() as Promise<Settings | null>,
+  ]);
 
-  // Build search params — user-provided values override profile defaults
+  // Build search params — user-provided values override settings/profile defaults
   const searchParams = {
     query: query as string,
     page: parseInt(page as string) || 1,
-    num_pages: parseInt(num_pages as string) || profile?.searchNumPages || 5,
+    num_pages: parseInt(num_pages as string) || settings?.searchNumPages || 5,
     country: (country as string) || "us",
     language: (language as string) || undefined,
     date_posted: (date_posted as string) || undefined,
@@ -218,9 +221,9 @@ jobsRouter.get("/search", async (req, res) => {
     employment_types: (employment_types as string)
       || (profile?.roleTypes?.length ? profile.roleTypes.join(",") : undefined),
     job_requirements: (job_requirements as string) || undefined,
-    radius: radius ? parseInt(radius as string) : (profile?.locationRadius ?? undefined),
+    radius: radius ? parseInt(radius as string) : undefined,
     exclude_job_publishers: (exclude_job_publishers as string)
-      || (profile?.excludePublishers?.length ? profile.excludePublishers.join(",") : undefined),
+      || (settings?.excludePublishers?.length ? settings.excludePublishers.join(",") : undefined),
   };
 
   let results;
@@ -251,7 +254,7 @@ jobsRouter.get("/search", async (req, res) => {
       if (job) {
         localJobs.push({
           ...job,
-          score: profile ? scoreJob(job, profile) : 0,
+          score: profile && settings ? scoreJob(job, profile, settings) : 0,
           savedStatus: job.savedJobs[0]?.status ?? null,
           savedId: job.savedJobs[0]?.id ?? null,
         });
@@ -346,11 +349,14 @@ jobsRouter.get("/all", async (req, res) => {
     }),
   ]);
 
-  const profile = await prisma.profile.findFirst();
+  const [profile, allJobsSettings] = await Promise.all([
+    prisma.profile.findFirst(),
+    prisma.settings.findFirst() as Promise<Settings | null>,
+  ]);
 
   let scored = jobs.map((job) => ({
     ...job,
-    score: profile ? scoreJob(job, profile) : 0,
+    score: profile && allJobsSettings ? scoreJob(job, profile, allJobsSettings) : 0,
     savedStatus: job.savedJobs[0]?.status ?? null,
     savedId: job.savedJobs[0]?.id ?? null,
   }));

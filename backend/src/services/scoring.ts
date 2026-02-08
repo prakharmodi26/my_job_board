@@ -1,4 +1,4 @@
-import type { Job, Profile } from "@prisma/client";
+import type { Job, Profile, Settings } from "@prisma/client";
 
 const CITIZENSHIP_PATTERNS = [
   /\bus\s*citizen/i,
@@ -11,6 +11,15 @@ const CITIZENSHIP_PATTERNS = [
   /\bno\s*visa\s*sponsor/i,
   /\bpermanent\s*resident/i,
   /\bUS\s*Person/i,
+];
+
+const OPT_CPT_PATTERNS = [
+  /\bopt\b/i,
+  /\bcpt\b/i,
+  /\bf[\-\s]?1\b/i,
+  /\bopen\s*to\s*(?:opt|cpt)/i,
+  /\binternational\s*students?\s*(?:welcome|accepted|eligible)/i,
+  /\bvisa\s*sponsor/i,
 ];
 
 const SENIORITY_KEYWORDS: Record<string, RegExp[]> = {
@@ -60,61 +69,49 @@ function extractYearsRequired(text: string): number | null {
   return found ? maxYears : null;
 }
 
-export function scoreJob(job: Job, profile: Profile): number {
+export function scoreJob(job: Job, profile: Profile, weights: Settings): number {
   let score = 0;
   const searchText = `${job.title} ${job.description}`.toLowerCase();
   const fullText = `${job.title} ${job.description}`;
 
-  // --- Skill matching with primary/secondary distinction ---
-  if (profile.primarySkills.length > 0 || profile.secondarySkills.length > 0) {
-    for (const kw of profile.primarySkills) {
-      score += countKeywordMatches(searchText, kw) * 15;
-    }
-    for (const kw of profile.secondarySkills) {
-      score += countKeywordMatches(searchText, kw) * 5;
-    }
-    // Also match targetTitles at 10pts
-    for (const kw of profile.targetTitles) {
-      score += countKeywordMatches(searchText, kw) * 10;
-    }
-  } else {
-    // Fallback to original flat scoring if no primary/secondary set
-    const keywords = [...profile.skills, ...profile.targetTitles];
-    for (const kw of keywords) {
-      score += countKeywordMatches(searchText, kw) * 10;
-    }
+  // --- Skill matching (flat, no primary/secondary distinction) ---
+  for (const kw of profile.skills) {
+    score += countKeywordMatches(searchText, kw) * weights.weightSkillMatch;
+  }
+  for (const kw of profile.targetTitles) {
+    score += countKeywordMatches(searchText, kw) * weights.weightTargetTitle;
   }
 
-  // --- Recency boost (0-30 points) ---
+  // --- Recency boost ---
   if (job.postedAt) {
     const ageMs = Date.now() - new Date(job.postedAt).getTime();
     const ageDays = ageMs / (1000 * 60 * 60 * 24);
-    if (ageDays <= 1) score += 30;
-    else if (ageDays <= 3) score += 20;
-    else if (ageDays <= 7) score += 10;
+    if (ageDays <= 1) score += weights.weightRecencyDay1;
+    else if (ageDays <= 3) score += weights.weightRecencyDay3;
+    else if (ageDays <= 7) score += weights.weightRecencyWeek;
   }
 
   // --- Remote / work mode matching ---
-  if (profile.workModePreference === "remote" && job.isRemote) {
-    score += 10;
+  if (profile.remotePreferred && job.isRemote) {
+    score += weights.weightRemoteMatch;
+  } else if (profile.workModePreference === "remote" && job.isRemote) {
+    score += weights.weightWorkModeMatch;
   } else if (profile.workModePreference === "onsite" && !job.isRemote) {
-    score += 5;
-  } else if (profile.remotePreferred && job.isRemote) {
-    score += 15;
+    score += weights.weightOnsiteMatch;
   }
 
-  // --- Seniority match (+20 match, -15 mismatch) ---
+  // --- Seniority match ---
   if (profile.seniority && SENIORITY_KEYWORDS[profile.seniority]) {
     const patterns = SENIORITY_KEYWORDS[profile.seniority];
     const matches = patterns.some((p) => p.test(fullText));
     if (matches) {
-      score += 20;
+      score += weights.weightSeniorityMatch;
     } else {
       // Check for mismatch: e.g. junior profile but job needs 10+ years
       const yearsRequired = extractYearsRequired(fullText);
       if (yearsRequired !== null && profile.yearsOfExperience !== null) {
         if (yearsRequired > (profile.yearsOfExperience ?? 0) + 2) {
-          score -= 15;
+          score += weights.weightSeniorityMismatch;
         }
       }
     }
@@ -132,14 +129,14 @@ export function scoreJob(job: Job, profile: Profile): number {
 
       // Overlap check
       if (jMax >= pMin && jMin <= pMax) {
-        score += 15;
+        score += weights.weightSalaryOverlap;
       } else if (jMax < pMin) {
-        score -= 20;
+        score += weights.weightSalaryBelow;
       }
     }
   }
 
-  // --- Industry/domain match (max 2 matched, 10pts each) ---
+  // --- Industry/domain match (max 2 matched) ---
   if (profile.industries.length > 0) {
     let industryMatches = 0;
     for (const ind of profile.industries) {
@@ -148,7 +145,7 @@ export function scoreJob(job: Job, profile: Profile): number {
         industryMatches++;
       }
     }
-    score += industryMatches * 10;
+    score += industryMatches * weights.weightIndustryMatch;
   }
 
   // --- Education match ---
@@ -166,9 +163,9 @@ export function scoreJob(job: Job, profile: Profile): number {
 
     if (jobLevel >= 0) {
       if (profileLevel >= jobLevel) {
-        score += 5;
+        score += weights.weightEducationMeet;
       } else {
-        score -= 10;
+        score += weights.weightEducationUnder;
       }
     }
   }
@@ -176,9 +173,9 @@ export function scoreJob(job: Job, profile: Profile): number {
   // --- Company size/type match ---
   if (profile.companySizePreference) {
     if (profile.companySizePreference === "startup" && STARTUP_PATTERNS.some((p) => p.test(fullText))) {
-      score += 10;
+      score += weights.weightCompanySize;
     } else if (profile.companySizePreference === "enterprise" && ENTERPRISE_PATTERNS.some((p) => p.test(fullText))) {
-      score += 10;
+      score += weights.weightCompanySize;
     }
   }
 
@@ -188,11 +185,11 @@ export function scoreJob(job: Job, profile: Profile): number {
     if (yearsRequired !== null) {
       const diff = yearsRequired - profile.yearsOfExperience;
       if (diff <= 0) {
-        score += 10; // we meet or exceed
+        score += weights.weightExpMeet; // we meet or exceed
       } else if (diff <= 2) {
-        score += 5; // slightly under, still reasonable
+        score += weights.weightExpClose; // slightly under, still reasonable
       } else {
-        score -= 15; // significantly under-qualified
+        score += weights.weightExpUnder; // significantly under-qualified
       }
     }
   }
@@ -200,7 +197,14 @@ export function scoreJob(job: Job, profile: Profile): number {
   // --- Citizenship penalty ---
   if (profile.citizenshipNotRequired) {
     if (CITIZENSHIP_PATTERNS.some((p) => p.test(fullText))) {
-      score -= 50;
+      score += weights.weightCitizenship;
+    }
+  }
+
+  // --- OPT/CPT/F1 boost ---
+  if (profile.citizenshipNotRequired) {
+    if (OPT_CPT_PATTERNS.some((p) => p.test(fullText))) {
+      score += weights.weightOptCptBoost;
     }
   }
 

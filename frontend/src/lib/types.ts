@@ -45,7 +45,6 @@ export interface Profile {
   preferredLocations: string[];
   remotePreferred: boolean;
   citizenshipNotRequired: boolean;
-  workAuthorization: string;
   // Role preferences
   seniority: string;
   yearsOfExperience: number | null;
@@ -54,9 +53,6 @@ export interface Profile {
   // Compensation
   minSalary: number | null;
   maxSalary: number | null;
-  // Skills depth
-  primarySkills: string[];
-  secondarySkills: string[];
   // Education
   education: string;
   degrees: string[];
@@ -64,10 +60,33 @@ export interface Profile {
   industries: string[];
   companySizePreference: string;
   companyTypes: string[];
-  // Location
-  locationRadius: number | null;
-  timezonePreference: string;
-  // Search/Recommendation settings
+  updatedAt: string;
+}
+
+export interface Settings {
+  id: number;
+  weightSkillMatch: number;
+  weightTargetTitle: number;
+  weightRecencyDay1: number;
+  weightRecencyDay3: number;
+  weightRecencyWeek: number;
+  weightRemoteMatch: number;
+  weightWorkModeMatch: number;
+  weightOnsiteMatch: number;
+  weightSeniorityMatch: number;
+  weightSeniorityMismatch: number;
+  weightSalaryOverlap: number;
+  weightSalaryBelow: number;
+  weightIndustryMatch: number;
+  weightEducationMeet: number;
+  weightEducationUnder: number;
+  weightCompanySize: number;
+  weightExpMeet: number;
+  weightExpClose: number;
+  weightExpUnder: number;
+  weightCitizenship: number;
+  weightOptCptBoost: number;
+  cronSchedule: string;
   searchNumPages: number;
   recommendedNumPages: number;
   recommendedDatePosted: string;

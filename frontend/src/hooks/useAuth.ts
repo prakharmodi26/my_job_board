@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 
 export function useAuth() {
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<{ username: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch<{ email: string }>("/api/auth/me")
+    apiFetch<{ username: string }>("/api/auth/me")
       .then(setUser)
       .catch(() => setUser(null))
       .finally(() => setLoading(false));

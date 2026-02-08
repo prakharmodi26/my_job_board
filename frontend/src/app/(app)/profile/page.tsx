@@ -155,13 +155,6 @@ const ROLE_TYPES = [
   { value: "INTERN", label: "Intern" },
 ];
 
-const DATE_POSTED_OPTIONS = [
-  { value: "today", label: "Today" },
-  { value: "3days", label: "3 Days" },
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-];
-
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,23 +167,12 @@ export default function ProfilePage() {
     duplicates: number;
   } | null>(null);
 
-  // Account state
-  const [email, setEmail] = useState("");
-  const [emailSaving, setEmailSaving] = useState(false);
-  const [emailMsg, setEmailMsg] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [pwSaving, setPwSaving] = useState(false);
-  const [pwMsg, setPwMsg] = useState("");
-
   // Core targeting
   const [targetTitles, setTargetTitles] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [remotePreferred, setRemotePreferred] = useState(false);
   const [citizenshipNotRequired, setCitizenshipNotRequired] = useState(true);
-  const [workAuthorization, setWorkAuthorization] = useState("");
 
   // Role preferences
   const [seniority, setSeniority] = useState("");
@@ -202,10 +184,6 @@ export default function ProfilePage() {
   const [minSalary, setMinSalary] = useState<string>("");
   const [maxSalary, setMaxSalary] = useState<string>("");
 
-  // Skills depth
-  const [primarySkills, setPrimarySkills] = useState<string[]>([]);
-  const [secondarySkills, setSecondarySkills] = useState<string[]>([]);
-
   // Education
   const [education, setEducation] = useState("");
   const [degrees, setDegrees] = useState<string[]>([]);
@@ -215,49 +193,26 @@ export default function ProfilePage() {
   const [companySizePreference, setCompanySizePreference] = useState("");
   const [companyTypes, setCompanyTypes] = useState<string[]>([]);
 
-  // Location
-  const [locationRadius, setLocationRadius] = useState<string>("");
-  const [timezonePreference, setTimezonePreference] = useState("");
-
-  // Search settings
-  const [searchNumPages, setSearchNumPages] = useState(5);
-  const [recommendedNumPages, setRecommendedNumPages] = useState(3);
-  const [recommendedDatePosted, setRecommendedDatePosted] = useState("week");
-  const [excludePublishers, setExcludePublishers] = useState<string[]>([]);
-
   const fetchProfile = useCallback(async () => {
     try {
-      const [p, me] = await Promise.all([
-        apiFetch<Profile>("/api/profile"),
-        apiFetch<{ email: string }>("/api/auth/me"),
-      ]);
+      const p = await apiFetch<Profile>("/api/profile");
       setProfile(p);
       setTargetTitles(p.targetTitles);
       setSkills(p.skills);
       setPreferredLocations(p.preferredLocations);
       setRemotePreferred(p.remotePreferred);
       setCitizenshipNotRequired(p.citizenshipNotRequired);
-      setWorkAuthorization(p.workAuthorization);
       setSeniority(p.seniority);
       setYearsOfExperience(p.yearsOfExperience != null ? String(p.yearsOfExperience) : "");
       setRoleTypes(p.roleTypes);
       setWorkModePreference(p.workModePreference);
       setMinSalary(p.minSalary != null ? String(p.minSalary) : "");
       setMaxSalary(p.maxSalary != null ? String(p.maxSalary) : "");
-      setPrimarySkills(p.primarySkills);
-      setSecondarySkills(p.secondarySkills);
       setEducation(p.education);
       setDegrees(p.degrees);
       setIndustries(p.industries);
       setCompanySizePreference(p.companySizePreference);
       setCompanyTypes(p.companyTypes);
-      setLocationRadius(p.locationRadius != null ? String(p.locationRadius) : "");
-      setTimezonePreference(p.timezonePreference);
-      setSearchNumPages(p.searchNumPages);
-      setRecommendedNumPages(p.recommendedNumPages);
-      setRecommendedDatePosted(p.recommendedDatePosted);
-      setExcludePublishers(p.excludePublishers);
-      setEmail(me.email);
     } catch (err) {
       console.error(err);
     } finally {
@@ -281,26 +236,17 @@ export default function ProfilePage() {
           preferredLocations,
           remotePreferred,
           citizenshipNotRequired,
-          workAuthorization,
           seniority,
           yearsOfExperience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
           roleTypes,
           workModePreference,
           minSalary: minSalary ? parseInt(minSalary) : null,
           maxSalary: maxSalary ? parseInt(maxSalary) : null,
-          primarySkills,
-          secondarySkills,
           education,
           degrees,
           industries,
           companySizePreference,
           companyTypes,
-          locationRadius: locationRadius ? parseInt(locationRadius) : null,
-          timezonePreference,
-          searchNumPages,
-          recommendedNumPages,
-          recommendedDatePosted,
-          excludePublishers,
         }),
       });
       setProfile(updated);
@@ -310,53 +256,6 @@ export default function ProfilePage() {
       console.error(err);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleEmailChange = async () => {
-    setEmailSaving(true);
-    setEmailMsg("");
-    try {
-      await apiFetch("/api/auth/email", {
-        method: "PATCH",
-        body: JSON.stringify({ email }),
-      });
-      setEmailMsg("Email updated");
-      setTimeout(() => setEmailMsg(""), 3000);
-    } catch (err) {
-      setEmailMsg(err instanceof Error ? err.message : "Failed to update");
-    } finally {
-      setEmailSaving(false);
-    }
-  };
-
-  const handlePasswordChange = async () => {
-    setPwSaving(true);
-    setPwMsg("");
-    if (newPassword !== confirmPassword) {
-      setPwMsg("Passwords do not match");
-      setPwSaving(false);
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPwMsg("Password must be at least 8 characters");
-      setPwSaving(false);
-      return;
-    }
-    try {
-      await apiFetch("/api/auth/password", {
-        method: "PATCH",
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      setPwMsg("Password updated");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setTimeout(() => setPwMsg(""), 3000);
-    } catch (err) {
-      setPwMsg(err instanceof Error ? err.message : "Failed to update");
-    } finally {
-      setPwSaving(false);
     }
   };
 
@@ -441,19 +340,6 @@ export default function ProfilePage() {
             description="Penalize jobs requiring US citizenship / security clearance"
             checked={citizenshipNotRequired}
             onChange={setCitizenshipNotRequired}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Work Authorization
-          </label>
-          <input
-            type="text"
-            value={workAuthorization}
-            onChange={(e) => setWorkAuthorization(e.target.value)}
-            placeholder="e.g. US Citizen, H-1B, OPT..."
-            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
           />
         </div>
 
@@ -566,22 +452,6 @@ export default function ProfilePage() {
           </div>
         </Section>
 
-        {/* Skills Depth */}
-        <Section title="Skills">
-          <TagInput
-            label="Primary Skills"
-            placeholder="Your strongest skills: e.g. React, Python, AWS..."
-            tags={primarySkills}
-            onChange={setPrimarySkills}
-          />
-          <TagInput
-            label="Secondary Skills"
-            placeholder="Nice-to-have: e.g. Docker, GraphQL, Redis..."
-            tags={secondarySkills}
-            onChange={setSecondarySkills}
-          />
-        </Section>
-
         {/* Education */}
         <Section title="Education">
           <div>
@@ -636,90 +506,6 @@ export default function ProfilePage() {
           />
         </Section>
 
-        {/* Location */}
-        <Section title="Location">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Search Radius (km)
-              </label>
-              <input
-                type="number"
-                min={0}
-                value={locationRadius}
-                onChange={(e) => setLocationRadius(e.target.value)}
-                placeholder="e.g. 50"
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Timezone Preference
-              </label>
-              <input
-                type="text"
-                value={timezonePreference}
-                onChange={(e) => setTimezonePreference(e.target.value)}
-                placeholder="e.g. US/Eastern, UTC-5"
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* Search Settings */}
-        <Section title="Search Settings">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Default Pages per Search
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={searchNumPages}
-                onChange={(e) => setSearchNumPages(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-gray-400 mt-0.5">1 credit per page</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Recommended: Pages/Query
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={recommendedNumPages}
-                onChange={(e) => setRecommendedNumPages(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Recommended: Date Filter
-              </label>
-              <select
-                value={recommendedDatePosted}
-                onChange={(e) => setRecommendedDatePosted(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {DATE_POSTED_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <TagInput
-            label="Exclude Publishers"
-            placeholder="e.g. BeeBe, Dice..."
-            tags={excludePublishers}
-            onChange={setExcludePublishers}
-          />
-        </Section>
-
         {/* Save button */}
         <div className="flex items-center gap-3 pt-2">
           <button
@@ -768,92 +554,6 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
-        </Section>
-
-        {/* Account Settings */}
-        <Section title="Account Settings">
-          {/* Change email */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <div className="flex gap-3">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-              />
-              <button
-                onClick={handleEmailChange}
-                disabled={emailSaving}
-                className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shrink-0"
-              >
-                {emailSaving ? "Saving..." : "Update"}
-              </button>
-            </div>
-            {emailMsg && (
-              <p
-                className={cn(
-                  "text-sm font-medium",
-                  emailMsg.includes("updated")
-                    ? "text-green-600"
-                    : "text-red-600"
-                )}
-              >
-                {emailMsg}
-              </p>
-            )}
-          </div>
-
-          {/* Change password */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Change Password
-            </label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Current password"
-              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-            />
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="New password (min 8 characters)"
-              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-            />
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-            />
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handlePasswordChange}
-                disabled={pwSaving || !currentPassword || !newPassword}
-                className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
-              >
-                {pwSaving ? "Updating..." : "Change Password"}
-              </button>
-              {pwMsg && (
-                <p
-                  className={cn(
-                    "text-sm font-medium",
-                    pwMsg.includes("updated")
-                      ? "text-green-600"
-                      : "text-red-600"
-                  )}
-                >
-                  {pwMsg}
-                </p>
-              )}
-            </div>
-          </div>
         </Section>
 
         {/* Last updated */}

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MyJobBoard",
-  description: "Personal job search & application tracker",
+  title: "Jobby",
+  description: "Your personal job search & recommendation engine",
 };
 
 export default function RootLayout({

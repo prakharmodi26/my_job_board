@@ -20,9 +20,9 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col min-h-screen shrink-0">
       <div className="p-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold tracking-tight">MyJobBoard</h1>
+        <h1 className="text-xl font-bold tracking-tight">Jobby</h1>
         {user && (
-          <p className="text-xs text-gray-400 mt-1 truncate">{user.email}</p>
+          <p className="text-xs text-gray-400 mt-1 truncate">{user.username}</p>
         )}
       </div>
 
@@ -48,7 +48,19 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-gray-800 space-y-1">
+        <Link
+          href="/settings"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            pathname === "/settings"
+              ? "bg-blue-600 text-white"
+              : "text-gray-300 hover:bg-gray-800 hover:text-white"
+          )}
+        >
+          <span className="text-lg">⚙️</span>
+          Settings
+        </Link>
         <button
           onClick={logout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"

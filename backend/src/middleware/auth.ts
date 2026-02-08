@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 
 export interface AuthPayload {
-  email: string;
+  username: string;
 }
 
 declare global {

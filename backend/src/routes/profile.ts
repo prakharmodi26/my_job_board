@@ -21,22 +21,15 @@ profileRouter.put("/", async (req, res) => {
   const fields = [
     // Core targeting
     "targetTitles", "skills", "preferredLocations",
-    "remotePreferred", "citizenshipNotRequired", "workAuthorization",
+    "remotePreferred", "citizenshipNotRequired",
     // Role preferences
     "seniority", "yearsOfExperience", "roleTypes", "workModePreference",
     // Compensation
     "minSalary", "maxSalary",
-    // Skills depth
-    "primarySkills", "secondarySkills",
     // Education
     "education", "degrees",
     // Industry & company
     "industries", "companySizePreference", "companyTypes",
-    // Location
-    "locationRadius", "timezonePreference",
-    // Search/Recommendation settings
-    "searchNumPages", "recommendedNumPages", "recommendedDatePosted",
-    "excludePublishers",
   ];
 
   for (const field of fields) {

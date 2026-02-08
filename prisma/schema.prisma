@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id           Int      @id @default(autoincrement())
-  email        String   @unique
+  username     String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -24,7 +24,6 @@ model Profile {
   preferredLocations      String[] @default([])
   remotePreferred         Boolean  @default(false)
   citizenshipNotRequired  Boolean  @default(true)
-  workAuthorization       String   @default("")
 
   // Role preferences
   seniority               String   @default("")
@@ -36,10 +35,6 @@ model Profile {
   minSalary               Int?
   maxSalary               Int?
 
-  // Skills depth
-  primarySkills           String[] @default([])
-  secondarySkills         String[] @default([])
-
   // Education
   education               String   @default("")
   degrees                 String[] @default([])
@@ -49,11 +44,39 @@ model Profile {
   companySizePreference   String   @default("")
   companyTypes            String[] @default([])
 
-  // Location
-  locationRadius          Int?
-  timezonePreference      String   @default("")
+  updatedAt               DateTime @updatedAt
+}
 
-  // Search/Recommendation settings
+model Settings {
+  id                      Int      @id @default(autoincrement())
+
+  // Scoring weights
+  weightSkillMatch        Int      @default(10)
+  weightTargetTitle       Int      @default(10)
+  weightRecencyDay1       Int      @default(30)
+  weightRecencyDay3       Int      @default(20)
+  weightRecencyWeek       Int      @default(10)
+  weightRemoteMatch       Int      @default(15)
+  weightWorkModeMatch     Int      @default(10)
+  weightOnsiteMatch       Int      @default(5)
+  weightSeniorityMatch    Int      @default(20)
+  weightSeniorityMismatch Int      @default(-15)
+  weightSalaryOverlap     Int      @default(15)
+  weightSalaryBelow       Int      @default(-20)
+  weightIndustryMatch     Int      @default(10)
+  weightEducationMeet     Int      @default(5)
+  weightEducationUnder    Int      @default(-10)
+  weightCompanySize       Int      @default(10)
+  weightExpMeet           Int      @default(10)
+  weightExpClose          Int      @default(5)
+  weightExpUnder          Int      @default(-15)
+  weightCitizenship       Int      @default(-50)
+  weightOptCptBoost       Int      @default(20)
+
+  // Cron schedule (default: every 12 hours = 2x/day)
+  cronSchedule            String   @default("0 */12 * * *")
+
+  // Search settings (moved from Profile)
   searchNumPages          Int      @default(5)
   recommendedNumPages     Int      @default(3)
   recommendedDatePosted   String   @default("week")

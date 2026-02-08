@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       await apiFetch("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       router.push("/dashboard");
     } catch (err) {
@@ -32,7 +32,7 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">MyJobBoard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Jobby</h1>
           <p className="text-sm text-gray-500 mt-1">
             Sign in to manage your job search
           </p>
@@ -47,14 +47,14 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              Username
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="admin@myjobboard.com"
+              placeholder="Enter your username"
               required
             />
           </div>

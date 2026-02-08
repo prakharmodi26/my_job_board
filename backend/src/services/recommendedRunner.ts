@@ -3,6 +3,7 @@ import { searchJobs } from "./jsearch.js";
 import { upsertJob } from "./jobUpsert.js";
 import { scoreJob } from "./scoring.js";
 import type { JSearchParams } from "./jsearch.js";
+import type { Settings } from "@prisma/client";
 
 function mapYearsToRequirement(years: number | null): string | undefined {
   if (years === null || years === undefined) return undefined;
@@ -16,6 +17,8 @@ export async function runRecommendedPull() {
     throw new Error("Profile not configured — set target titles first");
   }
 
+  const settings = await prisma.settings.findFirst() as Settings | null;
+
   const run = await prisma.recommendedRun.create({
     data: {
       status: "running",
@@ -24,9 +27,9 @@ export async function runRecommendedPull() {
         locations: profile.preferredLocations,
         remote: profile.remotePreferred,
         seniority: profile.seniority,
-        primarySkills: profile.primarySkills,
-        numPages: profile.recommendedNumPages,
-        datePosted: profile.recommendedDatePosted,
+        skills: profile.skills,
+        numPages: settings?.recommendedNumPages || 3,
+        datePosted: settings?.recommendedDatePosted || "week",
       }),
     },
   });
@@ -36,15 +39,14 @@ export async function runRecommendedPull() {
   let duplicates = 0;
   const jobIdsThisRun: number[] = [];
 
-  // Shared params from profile settings
+  // Shared params from settings + profile
   const sharedParams: Partial<JSearchParams> = {
-    num_pages: profile.recommendedNumPages || 3,
-    date_posted: profile.recommendedDatePosted || "week",
+    num_pages: settings?.recommendedNumPages || 3,
+    date_posted: settings?.recommendedDatePosted || "week",
     employment_types: profile.roleTypes.length > 0 ? profile.roleTypes.join(",") : undefined,
     job_requirements: mapYearsToRequirement(profile.yearsOfExperience),
-    radius: profile.locationRadius ?? undefined,
-    exclude_job_publishers: profile.excludePublishers.length > 0
-      ? profile.excludePublishers.join(",")
+    exclude_job_publishers: settings?.excludePublishers?.length
+      ? settings.excludePublishers.join(",")
       : undefined,
   };
 
@@ -73,8 +75,8 @@ export async function runRecommendedPull() {
       }
     }
 
-    // Skill-based queries for top 2 primary skills
-    const topSkills = profile.primarySkills.slice(0, 2);
+    // Skill-based queries for top 2 skills
+    const topSkills = profile.skills.slice(0, 2);
     for (const skill of topSkills) {
       for (const title of profile.targetTitles) {
         queries.push({ query: `${skill} ${title}` });
@@ -117,7 +119,7 @@ export async function runRecommendedPull() {
 
     const scored = jobs.map((job) => ({
       jobId: job.id,
-      score: scoreJob(job, profile),
+      score: settings ? scoreJob(job, profile, settings) : 0,
     }));
 
     scored.sort((a, b) => b.score - a.score);

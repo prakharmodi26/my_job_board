@@ -9,14 +9,14 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 export const authRouter = Router();
 
 authRouter.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
 
-  if (!email || !password) {
-    res.status(400).json({ error: "Email and password required" });
+  if (!username || !password) {
+    res.status(400).json({ error: "Username and password required" });
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { username } });
   if (!user) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
@@ -28,7 +28,7 @@ authRouter.post("/login", async (req, res) => {
     return;
   }
 
-  const token = jwt.sign({ email: user.email, userId: user.id }, JWT_SECRET, {
+  const token = jwt.sign({ username: user.username, userId: user.id }, JWT_SECRET, {
     expiresIn: "7d",
   });
 
@@ -40,7 +40,7 @@ authRouter.post("/login", async (req, res) => {
     path: "/",
   });
 
-  res.json({ success: true, email: user.email });
+  res.json({ success: true, username: user.username });
 });
 
 authRouter.post("/logout", (_req, res) => {
@@ -49,19 +49,19 @@ authRouter.post("/logout", (_req, res) => {
 });
 
 authRouter.get("/me", authMiddleware, (req, res) => {
-  res.json({ email: req.user!.email });
+  res.json({ username: req.user!.username });
 });
 
-// Change email
-authRouter.patch("/email", authMiddleware, async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    res.status(400).json({ error: "Email is required" });
+// Change username
+authRouter.patch("/username", authMiddleware, async (req, res) => {
+  const { username } = req.body;
+  if (!username) {
+    res.status(400).json({ error: "Username is required" });
     return;
   }
 
   const user = await prisma.user.findUnique({
-    where: { email: req.user!.email },
+    where: { username: req.user!.username },
   });
   if (!user) {
     res.status(404).json({ error: "User not found" });
@@ -70,12 +70,12 @@ authRouter.patch("/email", authMiddleware, async (req, res) => {
 
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { email },
+    data: { username },
   });
 
-  // Re-issue token with new email
+  // Re-issue token with new username
   const token = jwt.sign(
-    { email: updated.email, userId: updated.id },
+    { username: updated.username, userId: updated.id },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -87,7 +87,7 @@ authRouter.patch("/email", authMiddleware, async (req, res) => {
     path: "/",
   });
 
-  res.json({ success: true, email: updated.email });
+  res.json({ success: true, username: updated.username });
 });
 
 // Change password
@@ -105,7 +105,7 @@ authRouter.patch("/password", authMiddleware, async (req, res) => {
   }
 
   const user = await prisma.user.findUnique({
-    where: { email: req.user!.email },
+    where: { username: req.user!.username },
   });
   if (!user) {
     res.status(404).json({ error: "User not found" });
