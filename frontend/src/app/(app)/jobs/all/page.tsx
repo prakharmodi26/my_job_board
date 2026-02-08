@@ -13,7 +13,7 @@ const EMPLOYMENT_TYPE_OPTIONS = [
   { value: "Full-time", label: "Full-time" },
   { value: "Part-time", label: "Part-time" },
   { value: "Contractor", label: "Contract" },
-  { value: "Intern", label: "Intern" },
+  { value: "Internship", label: "Intern" },
 ];
 
 function ScoreBadge({ score }: { score: number }) {

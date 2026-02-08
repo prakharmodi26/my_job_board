@@ -286,18 +286,33 @@ jobsRouter.get("/all", async (req, res) => {
 
   // Build where clause
   const where: Prisma.JobWhereInput = { ignored: false };
+  const andConditions: Prisma.JobWhereInput[] = [];
 
   if (search) {
-    where.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { company: { contains: search, mode: "insensitive" } },
-    ];
+    andConditions.push({
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        { company: { contains: search, mode: "insensitive" } },
+      ],
+    });
   }
   if (remote === "true") {
     where.isRemote = true;
   }
   if (employmentType) {
-    where.employmentType = employmentType;
+    const types = employmentType.split(",").map((t) => t.trim()).filter(Boolean);
+    if (types.length === 1) {
+      where.employmentType = { contains: types[0], mode: "insensitive" };
+    } else if (types.length > 1) {
+      andConditions.push({
+        OR: types.map((t) => ({
+          employmentType: { contains: t, mode: "insensitive" as const },
+        })),
+      });
+    }
+  }
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
   }
   if (minSalary !== undefined) {
     where.salaryMin = { gte: minSalary };
