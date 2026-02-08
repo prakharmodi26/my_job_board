@@ -10,10 +10,10 @@ type SortCol = "discoveredAt" | "title" | "company" | "salaryMin" | "postedAt" |
 type SortOrder = "asc" | "desc";
 
 const EMPLOYMENT_TYPE_OPTIONS = [
-  { value: "FULLTIME", label: "Full-time" },
-  { value: "PARTTIME", label: "Part-time" },
-  { value: "CONTRACTOR", label: "Contract" },
-  { value: "INTERN", label: "Intern" },
+  { value: "Full-time", label: "Full-time" },
+  { value: "Part-time", label: "Part-time" },
+  { value: "Contractor", label: "Contract" },
+  { value: "Intern", label: "Intern" },
 ];
 
 function ScoreBadge({ score }: { score: number }) {
@@ -41,7 +41,7 @@ export default function AllJobsPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
-  const [employmentTypeFilter, setEmploymentTypeFilter] = useState("");
+  const [employmentTypeFilter, setEmploymentTypeFilter] = useState<string[]>([]);
   const [sort, setSort] = useState<SortCol>("discoveredAt");
   const [order, setOrder] = useState<SortOrder>("desc");
 
@@ -58,7 +58,7 @@ export default function AllJobsPage() {
       });
       if (search.trim()) params.set("search", search.trim());
       if (remoteOnly) params.set("remote", "true");
-      if (employmentTypeFilter) params.set("employmentType", employmentTypeFilter);
+      if (employmentTypeFilter.length > 0) params.set("employmentType", employmentTypeFilter.join(","));
 
       const res = await apiFetch<{
         jobs: Job[];
@@ -162,12 +162,16 @@ export default function AllJobsPage() {
             key={type.value}
             type="button"
             onClick={() => {
-              setEmploymentTypeFilter((prev) => prev === type.value ? "" : type.value);
+              setEmploymentTypeFilter((prev) =>
+                prev.includes(type.value)
+                  ? prev.filter((v) => v !== type.value)
+                  : [...prev, type.value]
+              );
               setPage(1);
             }}
             className={cn(
               "text-sm px-3 py-2 rounded-lg border transition-colors",
-              employmentTypeFilter === type.value
+              employmentTypeFilter.includes(type.value)
                 ? "bg-blue-50 text-blue-700 border-blue-300"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
             )}
@@ -188,7 +192,7 @@ export default function AllJobsPage() {
               <SortHeader col="title" label="Title" />
               <SortHeader col="company" label="Company" />
               <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <SortHeader col="employmentType" label="Type" />
+              <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
               <SortHeader col="salaryMin" label="Salary" />
               <SortHeader col="score" label="Score" />
               <SortHeader col="postedAt" label="Posted" />
