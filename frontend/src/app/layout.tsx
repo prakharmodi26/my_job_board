@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Jobby",
   description: "Your personal job search & recommendation engine",
+  icons: {
+    icon: "/favcon_jobby.png",
+  },
 };
 
 export default function RootLayout({
