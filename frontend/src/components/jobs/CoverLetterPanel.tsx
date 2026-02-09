@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Job } from "@/lib/types";
 import { apiFetch } from "@/lib/api";
@@ -23,7 +23,6 @@ export function CoverLetterPanel({ job, onClose }: CoverLetterPanelProps) {
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const coverLetterRef = useRef<HTMLDivElement>(null);
 
   const latestCoverLetter = [...messages].reverse().find((m) => m.role === "assistant")?.content ?? "";
 
@@ -80,26 +79,25 @@ export function CoverLetterPanel({ job, onClose }: CoverLetterPanelProps) {
     await generateCoverLetter(updatedMessages);
   }
 
-  function handleCopy() {
+  async function handleCopy() {
     if (!latestCoverLetter) return;
-    navigator.clipboard.writeText(latestCoverLetter);
+    try {
+      await navigator.clipboard.writeText(latestCoverLetter);
+    } catch {
+      // Fallback for HTTP or unfocused contexts
+      const textarea = document.createElement("textarea");
+      textarea.value = latestCoverLetter;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  async function handleDownloadPdf() {
-    if (!latestCoverLetter || !coverLetterRef.current) return;
-    const html2pdf = (await import("html2pdf.js")).default;
-    html2pdf()
-      .set({
-        margin: [20, 20, 20, 20],
-        filename: `Cover_Letter_${job.company.replace(/\s+/g, "_")}.pdf`,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .from(coverLetterRef.current)
-      .save();
-  }
 
   return (
     <div
@@ -130,12 +128,6 @@ export function CoverLetterPanel({ job, onClose }: CoverLetterPanelProps) {
               className="text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
             >
               {copied ? "Copied!" : "Copy Text"}
-            </button>
-            <button
-              onClick={handleDownloadPdf}
-              className="text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              Download PDF
             </button>
           </div>
         )}
@@ -181,7 +173,7 @@ export function CoverLetterPanel({ job, onClose }: CoverLetterPanelProps) {
                 {msg.content}
               </div>
             ) : (
-              <div ref={i === messages.length - 1 && msg.role === "assistant" ? coverLetterRef : undefined}>
+              <div>
                 <div className="text-sm text-gray-800 whitespace-pre-line leading-relaxed bg-gray-50 border border-gray-200 rounded-xl p-4">
                   {msg.content}
                 </div>
