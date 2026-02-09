@@ -10,6 +10,10 @@ const VT_ARC_MODEL = "gpt-oss-120b";
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
 const GEMINI_MODEL = "gemma-3-12b-it"; // Gemma 3 12B Instruct
 
+// OpenRouter API (OpenAI-compatible)
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || "";
+
 export const coverLetterRouter = Router();
 
 function buildSystemPrompt(
@@ -136,6 +140,39 @@ async function callGeminiApi(
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 }
 
+// Call OpenRouter API (OpenAI-compatible format)
+async function callOpenRouterApi(
+  modelId: string,
+  chatMessages: { role: string; content: string }[]
+): Promise<string> {
+  if (!OPENROUTER_KEY) {
+    throw new Error("OPENROUTER_API_KEY environment variable is not set.");
+  }
+
+  const response = await fetch(OPENROUTER_BASE, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: modelId,
+      messages: chatMessages,
+      temperature: 0.7,
+      max_tokens: 2048,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`[CoverLetter] OpenRouter API error ${response.status}: ${text}`);
+    throw new Error(`OpenRouter API error ${response.status}: ${text}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
 coverLetterRouter.post("/generate", async (req, res) => {
   const { jobId, messages } = req.body as {
     jobId: number;
@@ -199,6 +236,12 @@ coverLetterRouter.post("/generate", async (req, res) => {
 
     if (selectedModel === "gemini") {
       coverLetter = await callGeminiApi(systemPrompt, chatMessages);
+    } else if (selectedModel === "gemma3-12b") {
+      // Gemma 3 12B uses the same Gemini API
+      coverLetter = await callGeminiApi(systemPrompt, chatMessages);
+    } else if (selectedModel.startsWith("openrouter:")) {
+      const openRouterModelId = selectedModel.replace("openrouter:", "");
+      coverLetter = await callOpenRouterApi(openRouterModelId, chatMessages);
     } else {
       // Default to VT ARC
       coverLetter = await callVtArcApi(chatMessages);
