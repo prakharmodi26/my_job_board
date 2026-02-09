@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { JobbyLogo } from "@/components/JobbyLogo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,10 +32,12 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Jobby</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Sign in to manage your job search
+        <div className="text-center mb-6">
+          <div className="flex justify-center">
+            <JobbyLogo size="lg" />
+          </div>
+          <p className="text-base font-medium text-gray-700 -mt-2">
+            Your Personal Job Board
           </p>
         </div>
 

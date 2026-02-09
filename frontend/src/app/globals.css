@@ -10,3 +10,18 @@
   --color-offer: #10b981;
   --color-rejected: #ef4444;
 }
+
+/* Jobby Logo Animations */
+@keyframes blink {
+  0%, 40%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.1);
+  }
+}
+
+.animate-blink {
+  animation: blink 0.5s ease-in-out;
+  transform-origin: center;
+}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { JobbyLogo } from "@/components/JobbyLogo";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "📊" },
@@ -20,7 +21,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col min-h-screen shrink-0">
       <div className="p-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold tracking-tight">Jobby</h1>
+        <JobbyLogo />
         {user && (
           <p className="text-xs text-gray-400 mt-1 truncate">{user.username}</p>
         )}
