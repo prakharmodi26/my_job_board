@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ProfileAIPanel } from "@/components/profile/ProfileAIPanel";
 
 function TagInput({
   label,
@@ -196,6 +197,7 @@ export default function ProfilePage() {
   // Cover letter profile
   const [userMd, setUserMd] = useState("");
   const [showMdPreview, setShowMdPreview] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -546,6 +548,13 @@ export default function ProfilePage() {
             >
               {showMdPreview ? "Edit" : "Preview"}
             </button>
+            <button
+              type="button"
+              onClick={() => setShowAIPanel(true)}
+              className="text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Make with AI
+            </button>
           </div>
           {showMdPreview ? (
             <pre className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-4 min-h-[200px] max-h-[400px] overflow-auto font-mono">
@@ -625,6 +634,17 @@ export default function ProfilePage() {
           </p>
         )}
       </div>
+
+      {showAIPanel && (
+        <ProfileAIPanel
+          onGenerated={(md) => {
+            setUserMd(md);
+            setShowAIPanel(false);
+            setShowMdPreview(false);
+          }}
+          onClose={() => setShowAIPanel(false)}
+        />
+      )}
     </div>
   );
 }
