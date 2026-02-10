@@ -22,6 +22,7 @@ CREATE TABLE "Settings" (
     "weightRecencyDay3" INTEGER NOT NULL DEFAULT 20,
     "weightRecencyWeek" INTEGER NOT NULL DEFAULT 10,
     "weightRemoteMatch" INTEGER NOT NULL DEFAULT 15,
+    "coverLetterModel" TEXT NOT NULL DEFAULT 'vt-arc',
     "weightWorkModeMatch" INTEGER NOT NULL DEFAULT 10,
     "weightOnsiteMatch" INTEGER NOT NULL DEFAULT 5,
     "weightSeniorityMatch" INTEGER NOT NULL DEFAULT 20,
