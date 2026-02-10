@@ -34,7 +34,7 @@ jobsRouter.get("/recommended", async (req, res) => {
       FROM "RecommendedMatch" rm
       JOIN "RecommendedRun" rr ON rr."id" = rm."runId"
       JOIN "Job" j ON j."id" = rm."jobId"
-      WHERE rr."status" = 'completed'
+      WHERE rr."status" IN ('completed', 'running')
         AND j."ignored" = false
         AND (j."postedAt" >= ${cutoff} OR j."postedAt" IS NULL)
       ORDER BY rm."jobId", rm."score" DESC
@@ -294,7 +294,7 @@ jobsRouter.get("/search", async (req, res) => {
   const searchParams = {
     query: query as string,
     page: parseInt(page as string) || 1,
-    num_pages: parseInt(num_pages as string) || settings?.searchNumPages || 5,
+    num_pages: parseInt(num_pages as string) || settings?.searchNumPages || 3,
     country: (country as string) || "us",
     language: (language as string) || undefined,
     date_posted: (date_posted as string) || undefined,

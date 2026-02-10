@@ -86,8 +86,8 @@ model Settings {
   cronSchedule            String   @default("0 */12 * * *")
 
   // Search settings (moved from Profile)
-  searchNumPages          Int      @default(5)
-  recommendedNumPages     Int      @default(3)
+  searchNumPages          Int      @default(3)
+  recommendedNumPages     Int      @default(1)
   recommendedDatePosted   String   @default("week")
   recommendedExpiryDays   Int      @default(5)
   excludePublishers       String[] @default([])

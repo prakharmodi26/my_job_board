@@ -23,9 +23,43 @@ async function executeRecommendedPull(
   let lastErrorMessage = "";
   const jobIdsThisRun: number[] = [];
 
+  async function upsertMatchesIncremental(jobIds: number[]) {
+    if (jobIds.length === 0) return;
+
+    const jobs = await prisma.job.findMany({
+      where: { id: { in: jobIds } },
+    });
+
+    const scored = jobs
+      .map((job) => ({
+        jobId: job.id,
+        score: settings ? scoreJob(job, profile, settings) : 0,
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    // Upsert scores/ranks so frontend can read while run is still executing
+    await prisma.$transaction(
+      scored.map((s, idx) =>
+        prisma.recommendedMatch.upsert({
+          where: { runId_jobId: { runId: run.id, jobId: s.jobId } },
+          create: {
+            runId: run.id,
+            jobId: s.jobId,
+            score: s.score,
+            rank: idx + 1,
+          },
+          update: {
+            score: s.score,
+            rank: idx + 1,
+          },
+        })
+      )
+    );
+  }
+
   // Shared params from settings + profile
   const sharedParams: Partial<JSearchParams> = {
-    num_pages: settings?.recommendedNumPages || 3,
+    num_pages: settings?.recommendedNumPages || 1,
     date_posted: settings?.recommendedDatePosted || "week",
     employment_types: profile.roleTypes.length > 0 ? profile.roleTypes.join(",") : undefined,
     job_requirements: mapYearsToRequirement(profile.yearsOfExperience),
@@ -89,6 +123,9 @@ async function executeRecommendedPull(
             jobIdsThisRun.push(result.jobId);
           }
         }
+
+        // Incremental scoring/upsert after each query batch
+        await upsertMatchesIncremental(jobIdsThisRun);
       } catch (err) {
         queryErrors++;
         lastErrorMessage = err instanceof Error ? err.message : String(err);
@@ -110,17 +147,7 @@ async function executeRecommendedPull(
 
     scored.sort((a, b) => b.score - a.score);
 
-    if (scored.length > 0) {
-      await prisma.recommendedMatch.createMany({
-        data: scored.map((s, idx) => ({
-          runId: run.id,
-          jobId: s.jobId,
-          score: s.score,
-          rank: idx + 1,
-        })),
-        skipDuplicates: true,
-      });
-    }
+    await upsertMatchesIncremental(jobIdsThisRun);
 
     // If every query failed (e.g. quota exceeded), mark as failed so previous results stay visible
     const allFailed = totalFetched === 0 && queryErrors > 0 && queryErrors === queries.length;
@@ -163,7 +190,7 @@ export async function runRecommendedPull() {
         remote: profile.remotePreferred,
         seniority: profile.seniority,
         skills: profile.skills,
-        numPages: settings?.recommendedNumPages || 3,
+        numPages: settings?.recommendedNumPages || 1,
         datePosted: settings?.recommendedDatePosted || "week",
       }),
     },
@@ -191,7 +218,7 @@ export async function startRecommendedPull(): Promise<number> {
         remote: profile.remotePreferred,
         seniority: profile.seniority,
         skills: profile.skills,
-        numPages: settings?.recommendedNumPages || 3,
+        numPages: settings?.recommendedNumPages || 1,
         datePosted: settings?.recommendedDatePosted || "week",
       }),
     },

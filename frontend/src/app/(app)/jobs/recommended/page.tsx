@@ -48,8 +48,8 @@ export default function RecommendedPage() {
   const [sort, setSort] = useState<SortOption>("rank");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
+  const fetchJobs = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -69,7 +69,7 @@ export default function RecommendedPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [page, sort, order, search, remoteOnly, employmentTypeFilter]);
 
@@ -101,6 +101,13 @@ export default function RecommendedPage() {
     const interval = setInterval(checkRunStatus, 3000);
     return () => clearInterval(interval);
   }, [pulling, checkRunStatus]);
+
+  // While a pull is running, refresh jobs list periodically to surface streaming results
+  useEffect(() => {
+    if (!pulling) return;
+    const interval = setInterval(() => fetchJobs({ silent: true }), 3000);
+    return () => clearInterval(interval);
+  }, [pulling, fetchJobs]);
 
   const handlePullRecommended = async () => {
     setPullError(null);
@@ -173,6 +180,12 @@ export default function RecommendedPage() {
     const hasFilters = search || remoteOnly || employmentTypeFilter.length > 0;
     return (
       <div>
+        {pulling && (
+          <div className="mb-4 flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+            <div className="h-3 w-3 rounded-full border-2 border-blue-700 border-t-transparent animate-spin" />
+            <span>Pull in progress — new recommendations will appear live.</span>
+          </div>
+        )}
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <input
@@ -220,14 +233,28 @@ export default function RecommendedPage() {
         </div>
 
         <div className="text-center py-16">
-          <p className="text-gray-500 text-lg">
-            {hasFilters ? "No jobs match your filters" : "No recommended jobs yet"}
-          </p>
-          <p className="text-gray-400 text-sm mt-1">
-            {hasFilters
-              ? "Try adjusting your filters"
-              : "Set up your profile and pull recommended jobs to get started"}
-          </p>
+          {pulling ? (
+            <>
+              <div className="flex items-center justify-center gap-2 text-gray-600 mb-2">
+                <div className="h-5 w-5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+                <span className="text-lg">Fetching recommendations…</span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                New jobs will stream in as each query returns.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-500 text-lg">
+                {hasFilters ? "No jobs match your filters" : "No recommended jobs yet"}
+              </p>
+              <p className="text-gray-400 text-sm mt-1">
+                {hasFilters
+                  ? "Try adjusting your filters"
+                  : "Set up your profile and pull recommended jobs to get started"}
+              </p>
+            </>
+          )}
           {pullError && (
             <p className="text-red-500 text-sm mt-2">{pullError}</p>
           )}
@@ -325,6 +352,13 @@ export default function RecommendedPage() {
         </div>
       </div>
 
+      {pulling && (
+        <div className="mb-3 flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          <div className="h-3 w-3 rounded-full border-2 border-blue-700 border-t-transparent animate-spin" />
+          <span>Live updating — new results appear as queries finish.</span>
+        </div>
+      )}
+
       <div className="grid gap-4">
         {data.jobs.map((job) => (
           <JobCard
@@ -369,6 +403,13 @@ export default function RecommendedPage() {
           onSave={handleSave}
           onApply={handleApply}
         />
+      )}
+
+      {pulling && (
+        <div className="flex items-center justify-center gap-2 text-sm text-blue-600 mt-4">
+          <div className="h-4 w-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+          <span>Continuing to fetch and score new recommendations…</span>
+        </div>
       )}
     </div>
   );

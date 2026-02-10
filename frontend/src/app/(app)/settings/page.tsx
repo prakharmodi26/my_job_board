@@ -218,8 +218,8 @@ export default function SettingsPage() {
   const [pwMsg, setPwMsg] = useState("");
 
   // Search settings
-  const [searchNumPages, setSearchNumPages] = useState(5);
-  const [recommendedNumPages, setRecommendedNumPages] = useState(3);
+  const [searchNumPages, setSearchNumPages] = useState(3);
+  const [recommendedNumPages, setRecommendedNumPages] = useState(1);
   const [recommendedDatePosted, setRecommendedDatePosted] = useState("week");
   const [recommendedExpiryDays, setRecommendedExpiryDays] = useState(5);
   const [excludePublishers, setExcludePublishers] = useState<string[]>([]);

@@ -79,7 +79,7 @@ export default function SearchPage() {
   const [datePosted, setDatePosted] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [numPages, setNumPages] = useState(5);
+  const [numPages, setNumPages] = useState(3);
   const [jobRequirements, setJobRequirements] = useState<string[]>([]);
   const [radius, setRadius] = useState("");
   const [excludePublishers, setExcludePublishers] = useState("");
