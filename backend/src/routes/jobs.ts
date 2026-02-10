@@ -14,69 +14,118 @@ jobsRouter.get("/recommended", async (req, res) => {
   const offset = (page - 1) * limit;
 
   // Sort/filter params
-  const sort = (req.query.sort as string) || "rank";
+  const sort = (req.query.sort as string) || "score";
   const order = (req.query.order as string) === "asc" ? "asc" : "desc";
   const search = (req.query.search as string) || "";
   const remote = req.query.remote === "true";
   const employmentType = (req.query.employmentType as string) || "";
 
-  const latestRun = await prisma.recommendedRun.findFirst({
-    orderBy: { runAt: "desc" },
-    where: { status: "completed" },
-  });
+  // Load expiry setting
+  const settings = await prisma.settings.findFirst();
+  const expiryDays = settings?.recommendedExpiryDays ?? 5;
+  const cutoff = new Date(Date.now() - expiryDays * 24 * 60 * 60 * 1000);
 
-  if (!latestRun) {
+  // Get best match per job across all completed runs, filtered by expiry
+  // Use a subquery to pick the highest score per jobId
+  const bestMatches: { id: number; jobId: number; score: number }[] =
+    await prisma.$queryRaw`
+      SELECT DISTINCT ON (rm."jobId")
+        rm."id", rm."jobId", rm."score"
+      FROM "RecommendedMatch" rm
+      JOIN "RecommendedRun" rr ON rr."id" = rm."runId"
+      JOIN "Job" j ON j."id" = rm."jobId"
+      WHERE rr."status" = 'completed'
+        AND j."ignored" = false
+        AND (j."postedAt" >= ${cutoff} OR j."postedAt" IS NULL)
+      ORDER BY rm."jobId", rm."score" DESC
+    `;
+
+  if (bestMatches.length === 0) {
     res.json({ jobs: [], total: 0, page, totalPages: 0 });
     return;
   }
 
-  // Build job-level filters
-  const jobFilter: Record<string, unknown> = { ignored: false };
+  // Load full job data for these matches
+  const matchMap = new Map(bestMatches.map((m) => [m.jobId, m]));
+  const jobIds = bestMatches.map((m) => m.jobId);
+
+  // Build additional filters
+  const jobWhere: Prisma.JobWhereInput = {
+    id: { in: jobIds },
+    ignored: false,
+  };
+  const andConditions: Prisma.JobWhereInput[] = [];
+
   if (search) {
-    jobFilter.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { company: { contains: search, mode: "insensitive" } },
-    ];
+    andConditions.push({
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        { company: { contains: search, mode: "insensitive" } },
+      ],
+    });
   }
   if (remote) {
-    jobFilter.isRemote = true;
+    jobWhere.isRemote = true;
   }
   if (employmentType) {
-    jobFilter.employmentType = { in: employmentType.split(",") };
+    const types = employmentType.split(",").map((t) => t.trim()).filter(Boolean);
+    if (types.length === 1) {
+      jobWhere.employmentType = { contains: types[0], mode: "insensitive" };
+    } else if (types.length > 1) {
+      andConditions.push({
+        OR: types.map((t) => ({
+          employmentType: { contains: t, mode: "insensitive" as const },
+        })),
+      });
+    }
+  }
+  if (andConditions.length > 0) {
+    jobWhere.AND = andConditions;
   }
 
-  const where = { runId: latestRun.id, job: jobFilter };
+  const total = await prisma.job.count({ where: jobWhere });
 
-  // Build orderBy — sort on match fields or nested job fields
-  let orderBy: Record<string, unknown>;
-  if (sort === "rank" || sort === "score") {
-    orderBy = { [sort]: sort === "rank" ? "asc" : order };
+  // Determine sort
+  const validJobSorts = ["postedAt", "discoveredAt", "title", "company"];
+  const sortByScore = sort === "score" || sort === "rank";
+
+  const dbOrder: Record<string, string> = {};
+  if (!sortByScore && validJobSorts.includes(sort)) {
+    dbOrder[sort] = order;
+  } else if (!sortByScore) {
+    dbOrder.discoveredAt = order;
+  }
+
+  const jobs = await prisma.job.findMany({
+    where: jobWhere,
+    orderBy: sortByScore ? { discoveredAt: "desc" } : dbOrder,
+    skip: sortByScore ? 0 : offset,
+    take: sortByScore ? undefined : limit,
+    include: { savedJobs: true },
+  });
+
+  let results = jobs.map((job) => {
+    const match = matchMap.get(job.id);
+    return {
+      ...job,
+      score: match?.score ?? 0,
+      rank: 0,
+      savedStatus: job.savedJobs[0]?.status ?? null,
+      savedId: job.savedJobs[0]?.id ?? null,
+    };
+  });
+
+  // Sort by score if needed, then assign ranks and paginate
+  if (sortByScore) {
+    results.sort((a, b) => order === "asc" ? a.score - b.score : b.score - a.score);
+    results = results.map((r, i) => ({ ...r, rank: i + 1 }));
+    results = results.slice(offset, offset + limit);
   } else {
-    // Sort on job fields: postedAt, discoveredAt, title, company
-    orderBy = { job: { [sort]: order } };
+    results = results.map((r, i) => ({ ...r, rank: offset + i + 1 }));
   }
-
-  const [matches, total] = await Promise.all([
-    prisma.recommendedMatch.findMany({
-      where,
-      orderBy,
-      skip: offset,
-      take: limit,
-      include: {
-        job: { include: { savedJobs: true } },
-      },
-    }),
-    prisma.recommendedMatch.count({ where }),
-  ]);
 
   res.json({
-    jobs: matches.map((m) => ({
-      ...m.job,
-      score: m.score,
-      rank: m.rank,
-      savedStatus: m.job.savedJobs[0]?.status ?? null,
-      savedId: m.job.savedJobs[0]?.id ?? null,
-    })),
+    jobs: results,
     total,
     page,
     totalPages: Math.ceil(total / limit),

@@ -83,6 +83,7 @@ model Settings {
   searchNumPages          Int      @default(5)
   recommendedNumPages     Int      @default(3)
   recommendedDatePosted   String   @default("week")
+  recommendedExpiryDays   Int      @default(5)
   excludePublishers       String[] @default([])
 
   // Cover letter model selection: "vt-arc" or "gemini"

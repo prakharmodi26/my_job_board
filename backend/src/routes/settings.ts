@@ -50,6 +50,7 @@ settingsRouter.put("/", async (req, res) => {
     "searchNumPages",
     "recommendedNumPages",
     "recommendedDatePosted",
+    "recommendedExpiryDays",
     "excludePublishers",
     // Cover letter model
     "coverLetterModel",

@@ -220,6 +220,7 @@ export default function SettingsPage() {
   const [searchNumPages, setSearchNumPages] = useState(5);
   const [recommendedNumPages, setRecommendedNumPages] = useState(3);
   const [recommendedDatePosted, setRecommendedDatePosted] = useState("week");
+  const [recommendedExpiryDays, setRecommendedExpiryDays] = useState(5);
   const [excludePublishers, setExcludePublishers] = useState<string[]>([]);
 
   // Cron
@@ -290,6 +291,7 @@ export default function SettingsPage() {
       setSearchNumPages(settings.searchNumPages);
       setRecommendedNumPages(settings.recommendedNumPages);
       setRecommendedDatePosted(settings.recommendedDatePosted);
+      setRecommendedExpiryDays(settings.recommendedExpiryDays ?? 5);
       setExcludePublishers(settings.excludePublishers);
 
       // Cron
@@ -417,6 +419,7 @@ export default function SettingsPage() {
           searchNumPages,
           recommendedNumPages,
           recommendedDatePosted,
+          recommendedExpiryDays,
           excludePublishers,
           cronSchedule: resolvedCron,
           coverLetterModel,
@@ -588,7 +591,7 @@ export default function SettingsPage() {
 
         {/* ==================== Search Settings ==================== */}
         <Section title="Search Settings">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Default Pages per Search
@@ -639,6 +642,24 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Recommended: Expiry Days
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={90}
+                value={recommendedExpiryDays}
+                onChange={(e) =>
+                  setRecommendedExpiryDays(
+                    Math.max(1, Math.min(90, parseInt(e.target.value) || 5))
+                  )
+                }
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-0.5">Hide jobs older than this</p>
             </div>
           </div>
 
