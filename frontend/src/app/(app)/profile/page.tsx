@@ -55,6 +55,7 @@ function TagInput({
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onBlur={addTag}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -541,22 +542,6 @@ export default function ProfilePage() {
           )}
         </Section>
 
-        {/* Save button */}
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {saving ? "Saving..." : "Save Profile"}
-          </button>
-          {saved && (
-            <span className="text-sm text-green-600 font-medium">
-              Saved successfully
-            </span>
-          )}
-        </div>
-
         {/* Last updated */}
         {profile?.updatedAt && (
           <p className="text-xs text-gray-400 pt-2">
@@ -569,6 +554,25 @@ export default function ProfilePage() {
               minute: "2-digit",
             })}
           </p>
+        )}
+
+        {/* Spacer for sticky footer */}
+        <div className="h-16" />
+      </div>
+
+      {/* Sticky save button */}
+      <div className="sticky bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-gray-200 py-3 -mx-6 px-6 flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {saving ? "Saving..." : "Save Profile"}
+        </button>
+        {saved && (
+          <span className="text-sm text-green-600 font-medium">
+            Saved successfully
+          </span>
         )}
       </div>
 
