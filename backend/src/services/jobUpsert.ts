@@ -60,7 +60,7 @@ export async function upsertJob(apiJob: JSearchJob): Promise<UpsertResult> {
     title: apiJob.job_title,
     company: apiJob.employer_name,
     companyLogo: apiJob.employer_logo,
-    location: apiJob.job_location,
+    location: apiJob.job_location || "",
     city: apiJob.job_city,
     state: apiJob.job_state,
     country: apiJob.job_country,
