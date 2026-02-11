@@ -304,12 +304,18 @@ export default function RecommendedPage() {
                   : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
               )}
             >
-              {type.label}
-            </button>
-          ))}
-          {pullButton}
+                {type.label}
+              </button>
+            ))}
           {rescoreButton}
+          {pullButton}
         </div>
+
+        {rescoreMsg && (
+          <div className="mb-4 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            {rescoreMsg}
+          </div>
+        )}
 
         <div className="text-center py-16">
           {pulling ? (
@@ -429,7 +435,6 @@ export default function RecommendedPage() {
           )}
           {rescoreButton}
           {pullButton}
-          {rescoreButton}
         </div>
 
         {rescoreMsg && (
@@ -452,11 +457,6 @@ export default function RecommendedPage() {
             <p className="font-medium">API usage limit is finished.</p>
             <p className="text-red-600">Change the API key or wait and try again.</p>
           </div>
-        </div>
-      )}
-      {rescoreMsg && (
-        <div className="mb-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          {rescoreMsg}
         </div>
       )}
 
