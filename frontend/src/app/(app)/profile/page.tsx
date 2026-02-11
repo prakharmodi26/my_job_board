@@ -212,7 +212,20 @@ export default function ProfilePage() {
       setCitizenshipNotRequired(p.citizenshipNotRequired);
       setAvoidKeywords(p.avoidKeywords || []);
       setSeniority(p.seniority);
-      setYearsOfExperience(p.yearsOfExperience || []);
+      if (Array.isArray(p.yearsOfExperience)) {
+        setYearsOfExperience(p.yearsOfExperience);
+      } else if (typeof p.yearsOfExperience === "number") {
+        // Legacy numeric values: map to closest category
+        if (p.yearsOfExperience === 0) {
+          setYearsOfExperience(["no_experience"]);
+        } else if (p.yearsOfExperience < 3) {
+          setYearsOfExperience(["under_3_years_experience"]);
+        } else {
+          setYearsOfExperience(["more_than_3_years_experience"]);
+        }
+      } else {
+        setYearsOfExperience([]);
+      }
       setRoleTypes(p.roleTypes);
       setWorkModePreference(p.workModePreference);
       setMinSalary(p.minSalary != null ? String(p.minSalary) : "");

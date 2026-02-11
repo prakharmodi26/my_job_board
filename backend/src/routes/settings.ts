@@ -28,9 +28,7 @@ settingsRouter.put("/", async (req, res) => {
     "weightRecencyDay1",
     "weightRecencyDay3",
     "weightRecencyWeek",
-    "weightRemoteMatch",
     "weightWorkModeMatch",
-    "weightOnsiteMatch",
     "weightSeniorityMatch",
     "weightSeniorityMismatch",
     "weightSalaryOverlap",
@@ -39,15 +37,15 @@ settingsRouter.put("/", async (req, res) => {
     "weightEducationMeet",
     "weightEducationUnder",
     "weightCompanySize",
-    "weightExpMeet",
-    "weightExpClose",
-    "weightExpUnder",
+    "weightExpMatch",
+    "weightExpMismatch",
     "weightCitizenship",
     "weightOptCptBoost",
     "minRecommendedScore",
     "weightAvoidKeyword",
     // Cron schedule
     "cronSchedule",
+    "cronEnabled",
     // Search settings
     "searchNumPages",
     "recommendedNumPages",
@@ -69,10 +67,10 @@ settingsRouter.put("/", async (req, res) => {
     data,
   });
 
-  // If cronSchedule changed, restart the cron scheduler with the new schedule
+  // If cron toggles or cronSchedule changed, restart/stop scheduler
   if (
-    data.cronSchedule !== undefined &&
-    data.cronSchedule !== oldCronSchedule
+    (data.cronSchedule !== undefined && data.cronSchedule !== oldCronSchedule) ||
+    data.cronEnabled !== undefined
   ) {
     await restartScheduler();
   }

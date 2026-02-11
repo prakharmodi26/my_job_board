@@ -47,7 +47,7 @@ export interface Profile {
   avoidKeywords: string[];
   // Role preferences
   seniority: string;
-  yearsOfExperience: number | null;
+  yearsOfExperience: string[];
   roleTypes: string[];
   workModePreference: string;
   // Compensation
@@ -71,9 +71,7 @@ export interface Settings {
   weightRecencyDay1: number;
   weightRecencyDay3: number;
   weightRecencyWeek: number;
-  weightRemoteMatch: number;
   weightWorkModeMatch: number;
-  weightOnsiteMatch: number;
   weightSeniorityMatch: number;
   weightSeniorityMismatch: number;
   weightSalaryOverlap: number;
@@ -82,14 +80,14 @@ export interface Settings {
   weightEducationMeet: number;
   weightEducationUnder: number;
   weightCompanySize: number;
-  weightExpMeet: number;
-  weightExpClose: number;
-  weightExpUnder: number;
+  weightExpMatch: number;
+  weightExpMismatch: number;
   weightCitizenship: number;
   weightOptCptBoost: number;
   weightAvoidKeyword: number;
   minRecommendedScore: number;
   cronSchedule: string;
+  cronEnabled: boolean;
   searchNumPages: number;
   recommendedNumPages: number;
   recommendedDatePosted: string;

@@ -148,9 +148,7 @@ const DEFAULTS: Partial<Settings> = {
   weightRecencyDay1: 30,
   weightRecencyDay3: 20,
   weightRecencyWeek: 10,
-  weightRemoteMatch: 15,
   weightWorkModeMatch: 10,
-  weightOnsiteMatch: 5,
   weightSeniorityMatch: 20,
   weightSeniorityMismatch: -15,
   weightSalaryOverlap: 15,
@@ -159,9 +157,8 @@ const DEFAULTS: Partial<Settings> = {
   weightEducationMeet: 5,
   weightEducationUnder: -10,
   weightCompanySize: 10,
-  weightExpMeet: 10,
-  weightExpClose: 5,
-  weightExpUnder: -15,
+  weightExpMatch: 10,
+  weightExpMismatch: -15,
   weightCitizenship: -50,
   weightOptCptBoost: 20,
   weightAvoidKeyword: -15,
@@ -220,11 +217,11 @@ export default function SettingsPage() {
 
   // Search settings
   const [searchNumPages, setSearchNumPages] = useState(3);
-  const [recommendedNumPages, setRecommendedNumPages] = useState(1);
   const [recommendedDatePosted, setRecommendedDatePosted] = useState("week");
   const [recommendedExpiryDays, setRecommendedExpiryDays] = useState(5);
   const [excludePublishers, setExcludePublishers] = useState<string[]>([]);
   const [minRecommendedScore, setMinRecommendedScore] = useState(50);
+  const [cronEnabled, setCronEnabled] = useState(true);
   const [clearingRecommended, setClearingRecommended] = useState(false);
   const [clearingJobs, setClearingJobs] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState("");
@@ -233,6 +230,9 @@ export default function SettingsPage() {
   const [cronSchedule, setCronSchedule] = useState("0 */12 * * *");
   const [cronPreset, setCronPreset] = useState("0 */12 * * *");
   const [customCron, setCustomCron] = useState("");
+  const cronStatusBadge = cronEnabled
+    ? "bg-green-100 text-green-700 border-green-200"
+    : "bg-red-100 text-red-700 border-red-200";
 
   // Cover letter model
   const [coverLetterModel, setCoverLetterModel] = useState("vt-arc");
@@ -250,9 +250,7 @@ export default function SettingsPage() {
   const [weightRecencyDay1, setWeightRecencyDay1] = useState(30);
   const [weightRecencyDay3, setWeightRecencyDay3] = useState(20);
   const [weightRecencyWeek, setWeightRecencyWeek] = useState(10);
-  const [weightRemoteMatch, setWeightRemoteMatch] = useState(15);
   const [weightWorkModeMatch, setWeightWorkModeMatch] = useState(10);
-  const [weightOnsiteMatch, setWeightOnsiteMatch] = useState(5);
   const [weightSeniorityMatch, setWeightSeniorityMatch] = useState(20);
   const [weightSeniorityMismatch, setWeightSeniorityMismatch] = useState(-15);
   const [weightSalaryOverlap, setWeightSalaryOverlap] = useState(15);
@@ -261,9 +259,8 @@ export default function SettingsPage() {
   const [weightEducationMeet, setWeightEducationMeet] = useState(5);
   const [weightEducationUnder, setWeightEducationUnder] = useState(-10);
   const [weightCompanySize, setWeightCompanySize] = useState(10);
-  const [weightExpMeet, setWeightExpMeet] = useState(10);
-  const [weightExpClose, setWeightExpClose] = useState(5);
-  const [weightExpUnder, setWeightExpUnder] = useState(-15);
+  const [weightExpMatch, setWeightExpMatch] = useState(10);
+  const [weightExpMismatch, setWeightExpMismatch] = useState(-15);
   const [weightCitizenship, setWeightCitizenship] = useState(-50);
   const [weightOptCptBoost, setWeightOptCptBoost] = useState(20);
   const [weightAvoidKeyword, setWeightAvoidKeyword] = useState(-15);
@@ -296,11 +293,11 @@ export default function SettingsPage() {
 
       // Search settings
       setSearchNumPages(settings.searchNumPages);
-      setRecommendedNumPages(settings.recommendedNumPages);
       setRecommendedDatePosted(settings.recommendedDatePosted);
       setRecommendedExpiryDays(settings.recommendedExpiryDays ?? 5);
       setExcludePublishers(settings.excludePublishers);
       setMinRecommendedScore(settings.minRecommendedScore ?? DEFAULTS.minRecommendedScore!);
+      setCronEnabled(settings.cronEnabled ?? true);
 
       // Cron
       setCronSchedule(settings.cronSchedule);
@@ -315,9 +312,7 @@ export default function SettingsPage() {
       setWeightRecencyDay1(settings.weightRecencyDay1);
       setWeightRecencyDay3(settings.weightRecencyDay3);
       setWeightRecencyWeek(settings.weightRecencyWeek);
-      setWeightRemoteMatch(settings.weightRemoteMatch);
       setWeightWorkModeMatch(settings.weightWorkModeMatch);
-      setWeightOnsiteMatch(settings.weightOnsiteMatch);
       setWeightSeniorityMatch(settings.weightSeniorityMatch);
       setWeightSeniorityMismatch(settings.weightSeniorityMismatch);
       setWeightSalaryOverlap(settings.weightSalaryOverlap);
@@ -326,9 +321,8 @@ export default function SettingsPage() {
       setWeightEducationMeet(settings.weightEducationMeet);
       setWeightEducationUnder(settings.weightEducationUnder);
       setWeightCompanySize(settings.weightCompanySize);
-      setWeightExpMeet(settings.weightExpMeet);
-      setWeightExpClose(settings.weightExpClose);
-      setWeightExpUnder(settings.weightExpUnder);
+      setWeightExpMatch(settings.weightExpMatch);
+      setWeightExpMismatch(settings.weightExpMismatch);
       setWeightCitizenship(settings.weightCitizenship);
       setWeightOptCptBoost(settings.weightOptCptBoost);
       setWeightAvoidKeyword(settings.weightAvoidKeyword ?? DEFAULTS.weightAvoidKeyword!);
@@ -426,7 +420,6 @@ export default function SettingsPage() {
         method: "PUT",
         body: JSON.stringify({
           searchNumPages,
-          recommendedNumPages,
           recommendedDatePosted,
           recommendedExpiryDays,
           excludePublishers,
@@ -438,9 +431,7 @@ export default function SettingsPage() {
           weightRecencyDay1,
           weightRecencyDay3,
           weightRecencyWeek,
-          weightRemoteMatch,
           weightWorkModeMatch,
-          weightOnsiteMatch,
           weightSeniorityMatch,
           weightSeniorityMismatch,
           weightSalaryOverlap,
@@ -449,12 +440,12 @@ export default function SettingsPage() {
           weightEducationMeet,
           weightEducationUnder,
           weightCompanySize,
-          weightExpMeet,
-          weightExpClose,
-          weightExpUnder,
+          weightExpMatch,
+          weightExpMismatch,
           weightCitizenship,
           weightOptCptBoost,
           weightAvoidKeyword,
+          cronEnabled,
         }),
       });
       setCronSchedule(resolvedCron);
@@ -507,9 +498,7 @@ export default function SettingsPage() {
     setWeightRecencyDay1(DEFAULTS.weightRecencyDay1!);
     setWeightRecencyDay3(DEFAULTS.weightRecencyDay3!);
     setWeightRecencyWeek(DEFAULTS.weightRecencyWeek!);
-    setWeightRemoteMatch(DEFAULTS.weightRemoteMatch!);
     setWeightWorkModeMatch(DEFAULTS.weightWorkModeMatch!);
-    setWeightOnsiteMatch(DEFAULTS.weightOnsiteMatch!);
     setWeightSeniorityMatch(DEFAULTS.weightSeniorityMatch!);
     setWeightSeniorityMismatch(DEFAULTS.weightSeniorityMismatch!);
     setWeightSalaryOverlap(DEFAULTS.weightSalaryOverlap!);
@@ -518,9 +507,8 @@ export default function SettingsPage() {
     setWeightEducationMeet(DEFAULTS.weightEducationMeet!);
     setWeightEducationUnder(DEFAULTS.weightEducationUnder!);
     setWeightCompanySize(DEFAULTS.weightCompanySize!);
-    setWeightExpMeet(DEFAULTS.weightExpMeet!);
-    setWeightExpClose(DEFAULTS.weightExpClose!);
-    setWeightExpUnder(DEFAULTS.weightExpUnder!);
+    setWeightExpMatch(DEFAULTS.weightExpMatch!);
+    setWeightExpMismatch(DEFAULTS.weightExpMismatch!);
     setWeightCitizenship(DEFAULTS.weightCitizenship!);
     setWeightOptCptBoost(DEFAULTS.weightOptCptBoost!);
     setWeightAvoidKeyword(DEFAULTS.weightAvoidKeyword!);
@@ -654,23 +642,6 @@ export default function SettingsPage() {
                 className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-gray-400 mt-0.5">1 credit per page</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Recommended: Pages/Query
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={recommendedNumPages}
-                onChange={(e) =>
-                  setRecommendedNumPages(
-                    Math.max(1, Math.min(50, parseInt(e.target.value) || 1))
-                  )
-                }
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -841,6 +812,31 @@ export default function SettingsPage() {
             How often the recommended job pull runs automatically.
           </p>
 
+          <div className="flex items-center gap-3 mb-3">
+            <span
+              className={cn(
+                "text-xs font-semibold px-3 py-1 rounded-full border",
+                cronEnabled
+                  ? "bg-green-100 text-green-700 border-green-200"
+                  : "bg-red-100 text-red-700 border-red-200"
+              )}
+            >
+              {cronEnabled ? "Cron active" : "Cron disabled"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCronEnabled((v) => !v)}
+              className={cn(
+                "px-4 py-2 text-sm font-medium rounded-lg border transition-colors",
+                cronEnabled
+                  ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                  : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+              )}
+            >
+              {cronEnabled ? "Disable cron" : "Enable cron"}
+            </button>
+          </div>
+
           <div className="space-y-2">
             {CRON_PRESETS.map((preset) => (
               <label
@@ -902,6 +898,11 @@ export default function SettingsPage() {
                 value={weightTargetTitle}
                 onChange={setWeightTargetTitle}
               />
+              <WeightInput
+                label="Avoid keyword penalty"
+                value={weightAvoidKeyword}
+                onChange={setWeightAvoidKeyword}
+              />
             </WeightGroup>
 
             <WeightGroup title="Recency">
@@ -924,19 +925,9 @@ export default function SettingsPage() {
 
             <WeightGroup title="Work Mode">
               <WeightInput
-                label="Remote preference match"
-                value={weightRemoteMatch}
-                onChange={setWeightRemoteMatch}
-              />
-              <WeightInput
                 label="Work mode match"
                 value={weightWorkModeMatch}
                 onChange={setWeightWorkModeMatch}
-              />
-              <WeightInput
-                label="Onsite match"
-                value={weightOnsiteMatch}
-                onChange={setWeightOnsiteMatch}
               />
             </WeightGroup>
 
@@ -997,19 +988,14 @@ export default function SettingsPage() {
 
             <WeightGroup title="Experience">
               <WeightInput
-                label="Experience meets"
-                value={weightExpMeet}
-                onChange={setWeightExpMeet}
+                label="Experience match"
+                value={weightExpMatch}
+                onChange={setWeightExpMatch}
               />
               <WeightInput
-                label="Experience close"
-                value={weightExpClose}
-                onChange={setWeightExpClose}
-              />
-              <WeightInput
-                label="Under-experienced"
-                value={weightExpUnder}
-                onChange={setWeightExpUnder}
+                label="Experience mismatch"
+                value={weightExpMismatch}
+                onChange={setWeightExpMismatch}
               />
             </WeightGroup>
 
@@ -1023,11 +1009,6 @@ export default function SettingsPage() {
                 label="OPT/CPT/F1 boost"
                 value={weightOptCptBoost}
                 onChange={setWeightOptCptBoost}
-              />
-              <WeightInput
-                label="Avoid keyword penalty"
-                value={weightAvoidKeyword}
-                onChange={setWeightAvoidKeyword}
               />
             </WeightGroup>
           </div>

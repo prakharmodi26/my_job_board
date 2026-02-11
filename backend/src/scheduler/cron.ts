@@ -27,7 +27,16 @@ async function loadCronSchedule(): Promise<string> {
 }
 
 export async function startScheduler() {
-  const schedule = await loadCronSchedule();
+  const settings = await prisma.settings.findFirst();
+  if (!settings) {
+    console.log("[CRON] No settings found; scheduler not started");
+    return;
+  }
+  if (!settings.cronEnabled) {
+    console.log("[CRON] Scheduler disabled; not starting cron task");
+    return;
+  }
+  const schedule = settings.cronSchedule;
   currentTask = createCronTask(schedule);
   console.log(`[CRON] Scheduler started — recommended pull on schedule: ${schedule}`);
 }
@@ -38,7 +47,17 @@ export async function restartScheduler() {
     console.log("[CRON] Stopped current cron task");
   }
 
-  const schedule = await loadCronSchedule();
+  const settings = await prisma.settings.findFirst();
+  if (!settings) {
+    console.log("[CRON] No settings found; scheduler not restarted");
+    return;
+  }
+  if (!settings.cronEnabled) {
+    console.log("[CRON] Scheduler disabled; cron task not started");
+    currentTask = null;
+    return;
+  }
+  const schedule = settings.cronSchedule;
   currentTask = createCronTask(schedule);
   console.log(`[CRON] Scheduler restarted — new schedule: ${schedule}`);
 }

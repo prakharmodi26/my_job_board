@@ -62,9 +62,7 @@ model Settings {
   weightRecencyDay1       Int      @default(30)
   weightRecencyDay3       Int      @default(20)
   weightRecencyWeek       Int      @default(10)
-  weightRemoteMatch       Int      @default(15)
   weightWorkModeMatch     Int      @default(10)
-  weightOnsiteMatch       Int      @default(5)
   weightSeniorityMatch    Int      @default(20)
   weightSeniorityMismatch Int      @default(-15)
   weightSalaryOverlap     Int      @default(15)
@@ -73,9 +71,8 @@ model Settings {
   weightEducationMeet     Int      @default(5)
   weightEducationUnder    Int      @default(-10)
   weightCompanySize       Int      @default(10)
-  weightExpMeet           Int      @default(10)
-  weightExpClose          Int      @default(5)
-  weightExpUnder          Int      @default(-15)
+  weightExpMatch          Int      @default(10)
+  weightExpMismatch       Int      @default(-15)
   weightCitizenship       Int      @default(-50)
   weightOptCptBoost       Int      @default(20)
 
@@ -84,6 +81,7 @@ model Settings {
 
   // Cron schedule (default: every 12 hours = 2x/day)
   cronSchedule            String   @default("0 */12 * * *")
+  cronEnabled             Boolean  @default(true)
 
   // Search settings (moved from Profile)
   searchNumPages          Int      @default(3)

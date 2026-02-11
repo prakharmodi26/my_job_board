@@ -123,13 +123,20 @@ export function scoreJob(job: Job, profile: Profile, weights: Settings): number 
     else if (ageDays <= 7) score += weights.weightRecencyWeek;
   }
 
-  // --- Remote / work mode matching ---
-  if (profile.remotePreferred && job.isRemote) {
-    score += weights.weightRemoteMatch;
-  } else if (profile.workModePreference === "remote" && job.isRemote) {
-    score += weights.weightWorkModeMatch;
-  } else if (profile.workModePreference === "onsite" && !job.isRemote) {
-    score += weights.weightOnsiteMatch;
+  // --- Work mode matching (single weight) ---
+  if (profile.workModePreference) {
+    const wantsRemote = profile.workModePreference === "remote" || profile.remotePreferred;
+    const wantsOnsite = profile.workModePreference === "onsite";
+    const jobRemote = job.isRemote;
+
+    const isMatch =
+      (wantsRemote && jobRemote) ||
+      (wantsOnsite && !jobRemote) ||
+      (!wantsRemote && !wantsOnsite); // hybrid/any -> no boost
+
+    if (isMatch) {
+      score += weights.weightWorkModeMatch;
+    }
   }
 
   // --- Seniority match ---
@@ -218,11 +225,9 @@ export function scoreJob(job: Job, profile: Profile, weights: Settings): number 
     if (yearsRequired !== null) {
       const diff = yearsRequired - profileYears;
       if (diff <= 0) {
-        score += weights.weightExpMeet; // we meet or exceed
-      } else if (diff <= 2) {
-        score += weights.weightExpClose; // slightly under, still reasonable
+        score += weights.weightExpMatch;
       } else {
-        score += weights.weightExpUnder; // significantly under-qualified
+        score += weights.weightExpMismatch;
       }
     }
   }
