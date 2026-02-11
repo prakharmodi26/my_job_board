@@ -84,6 +84,14 @@ function extractYearsRequired(text: string): number | null {
   return found ? maxYears : null;
 }
 
+function profileYearsToNumber(years: string[]): number | null {
+  if (!years || years.length === 0) return null;
+  if (years.includes("more_than_3_years_experience")) return 4;
+  if (years.includes("under_3_years_experience")) return 2;
+  if (years.includes("no_experience")) return 0;
+  return null;
+}
+
 export function scoreJob(job: Job, profile: Profile, weights: Settings): number {
   let score = 0;
   const searchText = `${job.title} ${job.description}`.toLowerCase();
@@ -204,10 +212,11 @@ export function scoreJob(job: Job, profile: Profile, weights: Settings): number 
   }
 
   // --- Experience years match ---
-  if (profile.yearsOfExperience !== null && profile.yearsOfExperience !== undefined) {
+  const profileYears = profileYearsToNumber(profile.yearsOfExperience);
+  if (profileYears !== null) {
     const yearsRequired = extractYearsRequired(fullText);
     if (yearsRequired !== null) {
-      const diff = yearsRequired - profile.yearsOfExperience;
+      const diff = yearsRequired - profileYears;
       if (diff <= 0) {
         score += weights.weightExpMeet; // we meet or exceed
       } else if (diff <= 2) {

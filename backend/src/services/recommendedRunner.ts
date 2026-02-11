@@ -8,11 +8,9 @@ import type { Settings, Profile, RecommendedRun } from "@prisma/client";
 // Tracks runIds requested for cancellation; checked per query batch
 const cancelledRuns = new Set<number>();
 
-export function mapYearsToRequirement(years: number | null): string | undefined {
-  if (years === null || years === undefined) return undefined;
-  if (years === 0) return "no_experience";
-  if (years < 3) return "under_3_years_experience";
-  return "more_than_3_years_experience";
+export function mapYearsToRequirement(years: string[] | null): string | undefined {
+  if (!years || years.length === 0) return undefined;
+  return years.join(",");
 }
 
 async function executeRecommendedPull(

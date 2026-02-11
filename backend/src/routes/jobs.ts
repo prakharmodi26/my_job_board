@@ -307,8 +307,9 @@ jobsRouter.get("/search", async (req, res) => {
         : undefined,
     employment_types: (employment_types as string)
       || (profile?.roleTypes?.length ? profile.roleTypes.join(",") : undefined),
-    job_requirements: (job_requirements as string)
-      || (profile?.yearsOfExperience != null
+    job_requirements:
+      (job_requirements as string) ||
+      (profile?.yearsOfExperience?.length
         ? mapYearsToRequirement(profile.yearsOfExperience)
         : undefined),
     radius: radius ? parseInt(radius as string) : undefined,

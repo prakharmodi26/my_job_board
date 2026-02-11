@@ -10,16 +10,13 @@ function TagInput({
   placeholder,
   tags,
   onChange,
-  max = Infinity,
 }: {
   label: string;
   placeholder: string;
   tags: string[];
   onChange: (tags: string[]) => void;
-  max?: number;
 }) {
   const [input, setInput] = useState("");
-  const [error, setError] = useState("");
 
   const addTag = () => {
     const val = input.trim();
@@ -27,12 +24,6 @@ function TagInput({
       setInput("");
       return;
     }
-    if (tags.length >= max) {
-      setError(`Max ${max} items allowed`);
-      setInput("");
-      return;
-    }
-    setError("");
     onChange([...tags, val]);
     setInput("");
   };
@@ -80,7 +71,6 @@ function TagInput({
           className="flex-1 min-w-[120px] text-sm outline-none bg-transparent py-1"
         />
       </div>
-      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
@@ -182,14 +172,14 @@ export default function ProfilePage() {
   const [citizenshipNotRequired, setCitizenshipNotRequired] = useState(true);
   const [avoidKeywords, setAvoidKeywords] = useState<string[]>([]);
   const EXPERIENCE_OPTIONS = [
-    { value: "0", label: "No experience" },
-    { value: "2", label: "Under 3 years" },
-    { value: "4", label: "More than 3 years" },
+    { value: "no_experience", label: "No experience" },
+    { value: "under_3_years_experience", label: "Under 3 years" },
+    { value: "more_than_3_years_experience", label: "More than 3 years" },
   ];
 
   // Role preferences
   const [seniority, setSeniority] = useState("");
-  const [yearsOfExperience, setYearsOfExperience] = useState<string>("");
+  const [yearsOfExperience, setYearsOfExperience] = useState<string[]>([]);
   const [roleTypes, setRoleTypes] = useState<string[]>([]);
   const [workModePreference, setWorkModePreference] = useState("");
 
@@ -222,7 +212,7 @@ export default function ProfilePage() {
       setCitizenshipNotRequired(p.citizenshipNotRequired);
       setAvoidKeywords(p.avoidKeywords || []);
       setSeniority(p.seniority);
-      setYearsOfExperience(p.yearsOfExperience != null ? String(p.yearsOfExperience) : "");
+      setYearsOfExperience(p.yearsOfExperience || []);
       setRoleTypes(p.roleTypes);
       setWorkModePreference(p.workModePreference);
       setMinSalary(p.minSalary != null ? String(p.minSalary) : "");
@@ -258,7 +248,7 @@ export default function ProfilePage() {
           citizenshipNotRequired,
           avoidKeywords,
           seniority,
-          yearsOfExperience: yearsOfExperience ? parseInt(yearsOfExperience) : null,
+          yearsOfExperience,
           roleTypes,
           workModePreference,
           minSalary: minSalary ? parseInt(minSalary) : null,
@@ -390,16 +380,29 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Years of Experience
             </label>
-            <select
-              value={yearsOfExperience}
-              onChange={(e) => setYearsOfExperience(e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select...</option>
-              <option value="0">No experience</option>
-              <option value="2">Under 3 years</option>
-              <option value="4">More than 3 years</option>
-            </select>
+            <div className="flex flex-wrap gap-2">
+              {EXPERIENCE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() =>
+                    setYearsOfExperience((prev) =>
+                      prev.includes(opt.value)
+                        ? prev.filter((v) => v !== opt.value)
+                        : [...prev, opt.value]
+                    )
+                  }
+                  className={cn(
+                    "text-sm px-3 py-2 rounded-lg border transition-colors",
+                    yearsOfExperience.includes(opt.value)
+                      ? "bg-blue-50 text-blue-700 border-blue-300"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>
