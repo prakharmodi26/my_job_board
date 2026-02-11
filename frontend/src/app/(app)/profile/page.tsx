@@ -314,7 +314,6 @@ export default function ProfilePage() {
           placeholder="e.g. Software Engineer, Full Stack Developer..."
           tags={targetTitles}
           onChange={setTargetTitles}
-          max={5}
         />
 
         <TagInput
@@ -322,7 +321,6 @@ export default function ProfilePage() {
           placeholder="e.g. React, TypeScript, Node.js..."
           tags={skills}
           onChange={setSkills}
-          max={5}
         />
 
         <TagInput
@@ -330,7 +328,6 @@ export default function ProfilePage() {
           placeholder="e.g. San Francisco, New York, Remote..."
           tags={preferredLocations}
           onChange={setPreferredLocations}
-          max={5}
         />
 
         <TagInput

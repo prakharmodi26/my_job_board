@@ -105,6 +105,7 @@ export function scoreJob(job: Job, profile: Profile, weights: Settings): number 
       ? highlights.Qualifications
       : "";
   const combinedAvoidText = `${searchText} ${qualificationsText.toLowerCase()}`;
+  const profileYears = profileYearsToNumber(profile.yearsOfExperience);
 
   // --- Skill matching (flat, no primary/secondary distinction) ---
   for (const kw of profile.skills) {
@@ -148,8 +149,8 @@ export function scoreJob(job: Job, profile: Profile, weights: Settings): number 
     } else {
       // Check for mismatch: e.g. junior profile but job needs 10+ years
       const yearsRequired = extractYearsRequired(fullText);
-      if (yearsRequired !== null && profile.yearsOfExperience !== null) {
-        if (yearsRequired > (profile.yearsOfExperience ?? 0) + 2) {
+      if (yearsRequired !== null && profileYears !== null) {
+        if (yearsRequired > profileYears + 2) {
           score += weights.weightSeniorityMismatch;
         }
       }
@@ -219,7 +220,6 @@ export function scoreJob(job: Job, profile: Profile, weights: Settings): number 
   }
 
   // --- Experience years match ---
-  const profileYears = profileYearsToNumber(profile.yearsOfExperience);
   if (profileYears !== null) {
     const yearsRequired = extractYearsRequired(fullText);
     if (yearsRequired !== null) {
