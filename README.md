@@ -71,7 +71,8 @@ Edit `.env` and fill in the required values:
 |----------|----------|-------------|
 | `DATABASE_URL` | ✅ | PostgreSQL connection string. The default works with the Docker Compose postgres service. |
 | `JWT_SECRET` | ✅ | A long random string for signing auth tokens. Change this! |
-| `JSEARCH_API_KEY` | ✅ | RapidAPI key for [JSearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch). Required to fetch job listings. |
+| `JSEARCH_API_KEYS` | ✅ | Comma/space separated RapidAPI keys for [JSearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch). The app will rotate keys on quota errors. If not set, falls back to `JSEARCH_API_KEY`. |
+| `JSEARCH_API_KEY` | ➖ | Single RapidAPI key (legacy). Used only if `JSEARCH_API_KEYS` is not provided. |
 | `FRONTEND_URL` | ✅ | Origin of the frontend for CORS (e.g. `http://localhost:3000` or your domain). |
 | `NEXT_PUBLIC_API_URL` | ✅ | URL the frontend uses to reach the backend (e.g. `http://localhost:4000` or your domain). |
 | `VT_ARC_KEY` | ➖ | VT ARC LLM API key (optional, for cover letter generation). |

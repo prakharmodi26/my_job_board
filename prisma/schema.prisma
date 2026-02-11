@@ -27,7 +27,7 @@ model Profile {
 
   // Role preferences
   seniority               String   @default("")
-  yearsOfExperience       Int?
+  yearsOfExperience       Int?     // stored as an integer category: 0=no experience, 2=under 3, 4=more than 3
   roleTypes               String[] @default([])
   workModePreference      String   @default("")
 

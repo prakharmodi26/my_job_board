@@ -10,19 +10,30 @@ function TagInput({
   placeholder,
   tags,
   onChange,
+  max = Infinity,
 }: {
   label: string;
   placeholder: string;
   tags: string[];
   onChange: (tags: string[]) => void;
+  max?: number;
 }) {
   const [input, setInput] = useState("");
+  const [error, setError] = useState("");
 
   const addTag = () => {
     const val = input.trim();
-    if (val && !tags.includes(val)) {
-      onChange([...tags, val]);
+    if (!val || tags.includes(val)) {
+      setInput("");
+      return;
     }
+    if (tags.length >= max) {
+      setError(`Max ${max} items allowed`);
+      setInput("");
+      return;
+    }
+    setError("");
+    onChange([...tags, val]);
     setInput("");
   };
 
@@ -69,6 +80,7 @@ function TagInput({
           className="flex-1 min-w-[120px] text-sm outline-none bg-transparent py-1"
         />
       </div>
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </div>
   );
 }
@@ -169,6 +181,11 @@ export default function ProfilePage() {
   const [remotePreferred, setRemotePreferred] = useState(false);
   const [citizenshipNotRequired, setCitizenshipNotRequired] = useState(true);
   const [avoidKeywords, setAvoidKeywords] = useState<string[]>([]);
+  const EXPERIENCE_OPTIONS = [
+    { value: "0", label: "No experience" },
+    { value: "2", label: "Under 3 years" },
+    { value: "4", label: "More than 3 years" },
+  ];
 
   // Role preferences
   const [seniority, setSeniority] = useState("");
@@ -294,6 +311,7 @@ export default function ProfilePage() {
           placeholder="e.g. Software Engineer, Full Stack Developer..."
           tags={targetTitles}
           onChange={setTargetTitles}
+          max={5}
         />
 
         <TagInput
@@ -301,6 +319,7 @@ export default function ProfilePage() {
           placeholder="e.g. React, TypeScript, Node.js..."
           tags={skills}
           onChange={setSkills}
+          max={5}
         />
 
         <TagInput
@@ -308,6 +327,7 @@ export default function ProfilePage() {
           placeholder="e.g. San Francisco, New York, Remote..."
           tags={preferredLocations}
           onChange={setPreferredLocations}
+          max={5}
         />
 
         <TagInput
@@ -370,14 +390,16 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Years of Experience
             </label>
-            <input
-              type="number"
-              min={0}
+            <select
               value={yearsOfExperience}
               onChange={(e) => setYearsOfExperience(e.target.value)}
-              placeholder="e.g. 5"
-              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-            />
+              className="w-full text-sm border border-gray-300 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="0">No experience</option>
+              <option value="2">Under 3 years</option>
+              <option value="4">More than 3 years</option>
+            </select>
           </div>
 
           <div>

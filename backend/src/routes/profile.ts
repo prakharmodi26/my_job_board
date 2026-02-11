@@ -17,6 +17,21 @@ profileRouter.put("/", async (req, res) => {
     profile = await prisma.profile.create({ data: {} });
   }
 
+  const arraysToCheck: { field: string; values: unknown[] }[] = [
+    { field: "targetTitles", values: req.body.targetTitles || [] },
+    { field: "skills", values: req.body.skills || [] },
+    { field: "preferredLocations", values: req.body.preferredLocations || [] },
+  ];
+
+  for (const item of arraysToCheck) {
+    if (Array.isArray(item.values) && item.values.length > 5) {
+      res
+        .status(400)
+        .json({ error: `Max 5 entries allowed for ${item.field}` });
+      return;
+    }
+  }
+
   const data: Record<string, unknown> = {};
   const fields = [
     // Core targeting

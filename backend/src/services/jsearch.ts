@@ -1,5 +1,29 @@
 const API_BASE = "https://jsearch.p.rapidapi.com";
-const API_KEY = process.env.JSEARCH_API_KEY || "";
+
+const rawKeys =
+  process.env.JSEARCH_API_KEYS ||
+  process.env.JSEARCH_API_KEY ||
+  "";
+
+const API_KEYS = rawKeys
+  .split(/[,\s]+/)
+  .map((k) => k.trim())
+  .filter(Boolean);
+
+let keyIndex = 0;
+
+function getNextKey(): string {
+  if (API_KEYS.length === 0) {
+    throw new Error("JSearch API key not configured (set JSEARCH_API_KEYS or JSEARCH_API_KEY)");
+  }
+  const key = API_KEYS[keyIndex];
+  keyIndex = (keyIndex + 1) % API_KEYS.length;
+  return key;
+}
+
+function logKeyUsage(idx: number) {
+  console.log(`[JSearch]   Using key index: ${idx}`);
+}
 
 export interface JSearchParams {
   query: string;
@@ -61,6 +85,10 @@ export interface JSearchResponse {
 export async function searchJobs(
   params: JSearchParams
 ): Promise<JSearchResponse> {
+  if (API_KEYS.length === 0) {
+    throw new Error("JSearch API key not configured (set JSEARCH_API_KEYS or JSEARCH_API_KEY)");
+  }
+
   const url = new URL(`${API_BASE}/search`);
   url.searchParams.set("query", params.query);
   if (params.page) url.searchParams.set("page", String(params.page));
@@ -84,26 +112,47 @@ export async function searchJobs(
     );
 
   console.log(`[JSearch] → GET ${url.toString()}`);
-  console.log(`[JSearch]   API key present: ${!!API_KEY} (length: ${API_KEY.length})`);
 
-  const start = Date.now();
-  const res = await fetch(url.toString(), {
-    headers: {
-      "x-rapidapi-key": API_KEY,
-      "x-rapidapi-host": "jsearch.p.rapidapi.com",
-    },
-  });
-  const ms = Date.now() - start;
+  const attempts = API_KEYS.length;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const idx = keyIndex;
+    const key = getNextKey();
+    logKeyUsage(idx);
 
-  if (!res.ok) {
+    const start = Date.now();
+    const res = await fetch(url.toString(), {
+      headers: {
+        "x-rapidapi-key": key,
+        "x-rapidapi-host": "jsearch.p.rapidapi.com",
+      },
+    });
+    const ms = Date.now() - start;
+
+    if (res.ok) {
+      const json: JSearchResponse = await res.json();
+      console.log(
+        `[JSearch] ← ${res.status} OK (${ms}ms) — ${json.data?.length ?? 0} jobs, status="${json.status}", request_id=${json.request_id}`
+      );
+      return json;
+    }
+
     const text = await res.text();
+    const isQuota =
+      res.status === 429 ||
+      text.toLowerCase().includes("quota") ||
+      text.toLowerCase().includes("usage limit");
+
     console.error(`[JSearch] ← ${res.status} FAILED (${ms}ms): ${text}`);
-    throw new Error(`JSearch API error ${res.status}: ${text}`);
+
+    if (!isQuota || attempt === attempts - 1) {
+      throw new Error(`JSearch API error ${res.status}: ${text}`);
+    }
+
+    // Quota hit: try next key
+    console.warn(
+      `[JSearch] Quota hit on key index ${idx}; rotating to next key (${attempt + 1}/${attempts})`
+    );
   }
 
-  const json: JSearchResponse = await res.json();
-  console.log(
-    `[JSearch] ← ${res.status} OK (${ms}ms) — ${json.data?.length ?? 0} jobs, status="${json.status}", request_id=${json.request_id}`
-  );
-  return json;
+  throw new Error("JSearch API quota exhausted across all configured keys");
 }

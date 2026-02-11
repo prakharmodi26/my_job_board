@@ -3,6 +3,7 @@ import { prisma } from "../prisma.js";
 import { searchJobs } from "../services/jsearch.js";
 import { upsertJob } from "../services/jobUpsert.js";
 import { scoreJob } from "../services/scoring.js";
+import { mapYearsToRequirement } from "../services/recommendedRunner.js";
 import type { Prisma, Settings } from "@prisma/client";
 
 export const jobsRouter = Router();
@@ -306,7 +307,10 @@ jobsRouter.get("/search", async (req, res) => {
         : undefined,
     employment_types: (employment_types as string)
       || (profile?.roleTypes?.length ? profile.roleTypes.join(",") : undefined),
-    job_requirements: (job_requirements as string) || undefined,
+    job_requirements: (job_requirements as string)
+      || (profile?.yearsOfExperience != null
+        ? mapYearsToRequirement(profile.yearsOfExperience)
+        : undefined),
     radius: radius ? parseInt(radius as string) : undefined,
     exclude_job_publishers: (exclude_job_publishers as string)
       || (settings?.excludePublishers?.length ? settings.excludePublishers.join(",") : undefined),

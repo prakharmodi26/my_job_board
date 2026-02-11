@@ -8,8 +8,9 @@ import type { Settings, Profile, RecommendedRun } from "@prisma/client";
 // Tracks runIds requested for cancellation; checked per query batch
 const cancelledRuns = new Set<number>();
 
-function mapYearsToRequirement(years: number | null): string | undefined {
+export function mapYearsToRequirement(years: number | null): string | undefined {
   if (years === null || years === undefined) return undefined;
+  if (years === 0) return "no_experience";
   if (years < 3) return "under_3_years_experience";
   return "more_than_3_years_experience";
 }
@@ -26,6 +27,9 @@ async function executeRecommendedPull(
   let lastErrorMessage = "";
   const jobIdsThisRun: number[] = [];
   const minScore = settings?.minRecommendedScore ?? 50;
+  const titles = (profile.targetTitles || []).slice(0, 5);
+  const locations = (profile.preferredLocations || []).slice(0, 5);
+  const skills = (profile.skills || []).slice(0, 5);
 
   async function upsertMatchesIncremental(jobIds: number[]) {
     if (jobIds.length === 0) return;
@@ -78,12 +82,12 @@ async function executeRecommendedPull(
   try {
     const queries: { query: string; work_from_home?: boolean }[] = [];
 
-    for (const title of profile.targetTitles) {
+    for (const title of titles) {
       const prefixedTitle = `${seniorityPrefix}${title}`;
 
       // Title + location combinations
-      if (profile.preferredLocations.length > 0) {
-        for (const loc of profile.preferredLocations) {
+      if (locations.length > 0) {
+        for (const loc of locations) {
           queries.push({ query: `${prefixedTitle} in ${loc}` });
         }
       } else {
@@ -96,10 +100,9 @@ async function executeRecommendedPull(
       }
     }
 
-    // Skill-based queries for top 2 skills
-    const topSkills = profile.skills.slice(0, 2);
-    for (const skill of topSkills) {
-      for (const title of profile.targetTitles) {
+    // Skill-based queries for all (capped) skills
+    for (const skill of skills) {
+      for (const title of titles) {
         queries.push({ query: `${skill} ${title}` });
       }
     }
