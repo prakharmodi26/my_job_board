@@ -4,7 +4,7 @@ import { searchJobs } from "../services/jsearch.js";
 import { upsertJob } from "../services/jobUpsert.js";
 import { scoreJob } from "../services/scoring.js";
 import { mapYearsToRequirement } from "../services/recommendedRunner.js";
-import type { Prisma, Settings } from "@prisma/client";
+import type { Prisma, Settings, Profile, RecommendedRun } from "@prisma/client";
 
 export const jobsRouter = Router();
 
@@ -417,6 +417,65 @@ function totalFetchedFromResults(results: { data?: unknown[] }): number {
   return results.data.length;
 }
 
+async function rescoreAllJobs(run: RecommendedRun, profile: Profile, settings: Settings) {
+  const minScore = settings.minRecommendedScore ?? 50;
+
+  // Score every job
+  const jobs = await prisma.job.findMany({ where: { ignored: false } });
+  const scored = jobs.map((job) => ({
+    jobId: job.id,
+    score: scoreJob(job, profile, settings),
+  }));
+
+  const toRemoveIds = scored.filter((s) => s.score < minScore).map((s) => s.jobId);
+  if (toRemoveIds.length > 0) {
+    await prisma.recommendedMatch.deleteMany({
+      where: { jobId: { in: toRemoveIds } },
+    });
+  }
+
+  const above = scored.filter((s) => s.score >= minScore);
+  const existing = above.length
+    ? await prisma.recommendedMatch.findMany({
+        where: { jobId: { in: above.map((s) => s.jobId) } },
+        select: { jobId: true },
+      })
+    : [];
+  const existingSet = new Set(existing.map((e) => e.jobId));
+
+  const toInsert = above.filter((s) => !existingSet.has(s.jobId));
+
+  if (toInsert.length > 0) {
+    await prisma.$transaction(
+      toInsert.map((s) =>
+        prisma.recommendedMatch.upsert({
+          where: { runId_jobId: { runId: run.id, jobId: s.jobId } },
+          create: { runId: run.id, jobId: s.jobId, score: s.score },
+          update: { score: s.score },
+        })
+      )
+    );
+  }
+
+  await prisma.recommendedRun.update({
+    where: { id: run.id },
+    data: {
+      status: "completed",
+      totalFetched: jobs.length,
+      newJobs: toInsert.length,
+      duplicates: existingSet.size,
+      errorMessage: null,
+    },
+  });
+
+  return {
+    total: jobs.length,
+    added: toInsert.length,
+    removed: toRemoveIds.length,
+    alreadyRecommended: existingSet.size,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/jobs/all — paginated view of all discovered jobs with scores
 // ---------------------------------------------------------------------------
@@ -518,4 +577,34 @@ jobsRouter.get("/all", async (req, res) => {
     page,
     totalPages: Math.ceil(total / limit),
   });
+});
+
+// POST /api/jobs/rescore — rescore all jobs against current profile/settings
+jobsRouter.post("/rescore", async (_req, res) => {
+  try {
+    const profile = await prisma.profile.findFirst();
+    if (!profile) {
+      res.status(400).json({ error: "Profile not configured yet" });
+      return;
+    }
+
+    let settings = (await prisma.settings.findFirst()) as Settings | null;
+    if (!settings) {
+      settings = await prisma.settings.create({ data: {} });
+    }
+
+    const run = await prisma.recommendedRun.create({
+      data: {
+        status: "running",
+        paramsJson: JSON.stringify({ source: "manual-rescore" }),
+      },
+    });
+
+    const summary = await rescoreAllJobs(run, profile, settings);
+
+    res.json({ ok: true, runId: run.id, ...summary });
+  } catch (err) {
+    console.error("[Rescore] Failed:", err);
+    res.status(500).json({ error: "Failed to rescore jobs" });
+  }
 });
