@@ -58,6 +58,20 @@ const DATE_POSTED_OPTIONS = [
   { value: "month", label: "Month" },
 ];
 
+const EMPLOYMENT_TYPE_OPTIONS = [
+  { value: "FULLTIME", label: "Full Time" },
+  { value: "CONTRACTOR", label: "Contractor" },
+  { value: "PARTTIME", label: "Part Time" },
+  { value: "INTERN", label: "Intern" },
+];
+
+const JOB_REQUIREMENT_OPTIONS = [
+  { value: "under_3_years_experience", label: "Under 3 Years Experience" },
+  { value: "more_than_3_years_experience", label: "More Than 3 Years Experience" },
+  { value: "no_experience", label: "No Experience" },
+  { value: "no_degree", label: "No Degree" },
+];
+
 /* ------------------------------------------------------------------ */
 /*  Empty form defaults                                               */
 /* ------------------------------------------------------------------ */
@@ -925,35 +939,81 @@ export default function SettingsPage() {
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       Employment Types
                     </label>
-                    <input
-                      type="text"
-                      value={queryForm.employmentTypes ?? ""}
-                      onChange={(e) =>
-                        setQueryForm({
-                          ...queryForm,
-                          employmentTypes: e.target.value || null,
-                        })
-                      }
-                      placeholder="fulltime,parttime (optional)"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      {EMPLOYMENT_TYPE_OPTIONS.map((opt) => {
+                        const selected = (queryForm.employmentTypes ?? "")
+                          .split(",")
+                          .filter(Boolean);
+                        const isChecked = selected.includes(opt.value);
+                        return (
+                          <label
+                            key={opt.value}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border cursor-pointer transition-colors",
+                              isChecked
+                                ? "bg-blue-50 border-blue-300 text-blue-700"
+                                : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const next = isChecked
+                                  ? selected.filter((v) => v !== opt.value)
+                                  : [...selected, opt.value];
+                                setQueryForm({
+                                  ...queryForm,
+                                  employmentTypes: next.length > 0 ? next.join(",") : null,
+                                });
+                              }}
+                              className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {opt.label}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       Job Requirements
                     </label>
-                    <input
-                      type="text"
-                      value={queryForm.jobRequirements ?? ""}
-                      onChange={(e) =>
-                        setQueryForm({
-                          ...queryForm,
-                          jobRequirements: e.target.value || null,
-                        })
-                      }
-                      placeholder="under_3_years_experience (optional)"
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      {JOB_REQUIREMENT_OPTIONS.map((opt) => {
+                        const selected = (queryForm.jobRequirements ?? "")
+                          .split(",")
+                          .filter(Boolean);
+                        const isChecked = selected.includes(opt.value);
+                        return (
+                          <label
+                            key={opt.value}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border cursor-pointer transition-colors",
+                              isChecked
+                                ? "bg-blue-50 border-blue-300 text-blue-700"
+                                : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const next = isChecked
+                                  ? selected.filter((v) => v !== opt.value)
+                                  : [...selected, opt.value];
+                                setQueryForm({
+                                  ...queryForm,
+                                  jobRequirements: next.length > 0 ? next.join(",") : null,
+                                });
+                              }}
+                              className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {opt.label}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">
